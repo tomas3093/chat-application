@@ -1,2 +1,7 @@
 Server/nbproject
 Client/nbproject
+Client/build
+Server/build
+Client/dist
+Server/dist
+.*

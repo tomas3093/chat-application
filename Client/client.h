@@ -3,7 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "konstanty.h"
+#include "../konstanty.h"
 
 
 /* Vytvori hlavicku spravy
@@ -13,7 +13,7 @@
 */
 int addMessageCode(char* buffer, const char* messageCode)
 {
-    bzero(buffer,SOCK_BUFFER_LENGTH);
+    memset(buffer, 0, SOCK_BUFFER_LENGTH);
     strcat(buffer, messageCode);
     strcat(buffer, &SOCK_SPECIAL_SYMBOL);
 
@@ -39,7 +39,7 @@ int connectToServer(int* sockfd, char* buffer)
     }
 
     // Načítame odpoveď od servra do buffra.
-    bzero(buffer,256);
+    memset(buffer, 0, 256);
     n = read(*sockfd, buffer, 255);
     if (n < 0)
     {
@@ -69,7 +69,7 @@ int disconnectFromServer(int* sockfd, char* buffer)
     }
 
     // Načítame odpoveď od servra do buffra.
-    bzero(buffer,256);
+    memset(buffer, 0, 256);
     n = read(*sockfd, buffer, 255);
     if (n < 0)
     {

@@ -7,7 +7,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "konstanty.h"
+#include "../konstanty.h"
 #include "client.h"
 
 
@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
     }
 
     // Vynulujeme a zinicializujeme adresu, na ktorú sa budeme pripájať.
-    bzero((char*)&serv_addr, sizeof(serv_addr));
+    memset((char*)&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     bcopy(
         (char*)server->h_addr_list[0],

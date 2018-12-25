@@ -6,6 +6,7 @@
 // Vseobecne
 const int SOCK_BUFFER_LENGTH = 256;     // Dlzka buffera ktory sa posiela socketmi
 const char SOCK_SPECIAL_SYMBOL = '~';   // Specialny znak, ktorym sprava zacina a oddeluje kod spravy a telo spravy
+const int CLIENT_INITIAL_COUNT = 255;   // Pocet klientov, ktory je mozne obsluzit
 
 
 // Sockety
@@ -23,6 +24,16 @@ const char* SOCK_RES_CONNECT = "100";
 const char* SOCK_RES_DISCONNECT = "101";
 
 // ...
+
+
+// Struktury
+
+/**
+ * Klientsky socket
+ */
+typedef struct {
+    int newsockfd;
+} CLIENT_SOCKET;
 
 
 
