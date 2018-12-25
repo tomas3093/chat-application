@@ -39,9 +39,21 @@ Chat app
   * ...
 
 ---
-Chat (2 študenti) – klient-server aplikácia, ktorá umožní komunikovať ľubovoľnému počtu používateľov.
+### Struktury
+    * CLIENT_SOCKET
+    * ...
 
-Aplikácia umožní používateľovi:
+#### Data na serveri
+    * int sockfd - socket servera
+    * int client_sockets[CLIENT_INITIAL_COUNT] - pole vsetkych klientskych soketov
+    * pthread_t client_threads[CLIENT_INITIAL_COUNT] - pole vsetkych klientskych vlakien
+
+
+---
+### Chat (2 študenti) 
+- klient-server aplikácia, ktorá umožní komunikovať ľubovoľnému počtu používateľov.
+
+#### Aplikácia umožní používateľovi:
   * vytvoriť/zrušiť účet,
   * prihlásiť sa/odhlásiť sa,
   * pridať si iného používateľa do svojich kontaktov – pridávaný používateľ o tom musí byť informovaný a musí s tým súhlasiť,

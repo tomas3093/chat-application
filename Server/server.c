@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
     }
 
     // Vynulujeme a zinicializujeme sieťovú adresu.
-    bzero((char*)&serv_addr, sizeof(serv_addr));
+    memset((char*)&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     serv_addr.sin_port = htons(atoi(argv[1]));
@@ -61,6 +61,7 @@ int main(int argc, char *argv[])
     printf("Server started.\n\n");
 
     
+    // TODO toto bude fungovat iba pre prvych n klintov, potom server skonci
     // Obsluha klientov
     for(int i = 0; i < CLIENT_INITIAL_COUNT; i++) {
         
@@ -77,8 +78,9 @@ int main(int argc, char *argv[])
             newsockfd
         };
         
+        // Vytvorenie vlakna pre obsluhu klienta
         pthread_create(&client_threads[i], NULL, clientHandler, &clientSock);
-        printf("Client %d. connected.\n", i);
+        printf("Client %d. connected.\n", i);   
     }
     
     

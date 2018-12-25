@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
     struct sockaddr_in serv_addr;
     struct hostent* server;
 
-    char buffer[SOCK_BUFFER_LENGTH];
+    char buffer[SOCK_MESSAGE_BUFFER_LENGTH];
 
     // Skontrolujeme či máme dostatok argumentov.
     if (argc < 3)
@@ -62,16 +62,24 @@ int main(int argc, char *argv[])
 
     // TODO
     // Poziadavka o pripojenie sa na server
-    connectToServer(&sockfd, buffer);
-    printf("%s\n",buffer); // Vypisanie odpovede servera
+    if (connectToServer(&sockfd, buffer) > 0) {
+        // ak zlyhala
+        printf("Error during connection to server\n");
+        close(sockfd);
+        return 5;
+    }
+    printf("%s\n", buffer); // Vypisanie odpovede servera
+    showStartMenu();    // Zobrazenie menu s moznostami prihlasit sa alebo registrovat
 
-    // Hlavny cyklus s komunikaciou medzi serverom a klientom
+    
+    // Hlavny cyklus s komunikaciou medzi serverom a prihlasenym klientom
     while (1) {
 
         // TODO
         printf("Stop\n");
         sleep(3);
         disconnectFromServer(&sockfd, buffer);
+        sleep(1);
         break;
 
         /*
