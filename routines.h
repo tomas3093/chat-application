@@ -49,4 +49,38 @@ char* getStrMessageCode(int code) {
 }
 
 
+/**
+ * Rozparsuje buffer, ktori obsahuje prihlasovacie udaje
+ * @return 
+ */
+ACCOUNT_CREDENTIALS* getCredentialsFromBuffer(char* buffer) {
+    ACCOUNT_CREDENTIALS* credentials = malloc(sizeof(ACCOUNT_CREDENTIALS));
+    credentials->username = malloc(sizeof(char) * USER_USERNAME_MAX_LENGTH);
+    credentials->password = malloc(sizeof(char) * USER_PASSWORD_MAX_LENGTH);
+    
+    int first = 0;
+    while(1) {
+        if (buffer[first] == '\0' || buffer[first] == SOCK_SPECIAL_SYMBOL) {
+            break;
+        }
+        
+        first++;
+    }
+    
+    int second = first + 1;
+    while(1) {
+        if (buffer[first] == '\0' || buffer[second] == '\0' || buffer[second] == SOCK_SPECIAL_SYMBOL) {
+            break;
+        }
+        
+        second++;
+    }
+    
+    memcpy(credentials->username, buffer + (first + 1), second - first - 1);
+    memcpy(credentials->password, buffer + (second + 1), strlen(buffer) - second - 1);
+    
+    return credentials;
+}
+
+
 #endif

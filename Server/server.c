@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
     printf("Server started.\n\n");
 
     
-    // TODO toto bude fungovat iba pre prvych n klintov, potom server skonci
+    // TODO toto bude fungovat iba pre prvych n klientov, potom server skonci
     // Obsluha klientov
     for(int i = 0; i < CLIENT_INITIAL_COUNT; i++) {
         

@@ -63,8 +63,8 @@ void clientDisconnect(CLIENT_SOCKET* p) {
  * Obsluha poziadavky pre registraciu noveho klienta
  * @param p
  */
-void clientRegister(CLIENT_SOCKET* p) {
-    printf("Klient poziadal o registraciu\n");
+void clientRegister(CLIENT_SOCKET* p, ACCOUNT_CREDENTIALS* credentials) {
+    printf("Klient poziadal o registraciu\nmeno: %s\nHeslo: %s\n", credentials->username, credentials->password);
 
     // Pošleme odpoveď klientovi.
     char* buffer = malloc(SOCK_MESSAGE_BUFFER_LENGTH);
@@ -72,6 +72,7 @@ void clientRegister(CLIENT_SOCKET* p) {
 
     // Vyhodnotit ci zadal dobre udaje
     // TODO
+    // prejst pole vsetkych uzivatelov ci uz nahodou dane meno nie je obsadene
     
     char* messageCode = getStrMessageCode(SOCK_RES_REGISTER_OK);
     strcat(buffer, messageCode);
@@ -119,7 +120,9 @@ void* clientHandler(void* args) {
             clientDisconnect(p);
             isEnd = 1;
         } else if (messageCode == SOCK_REQ_REGISTER) {
-            clientRegister(p);
+            clientRegister(p, getCredentialsFromBuffer(buffer));
+        } else {
+            // Do nothing
         }
     }
     

@@ -24,6 +24,12 @@ Chat app
 #### Vzorova sprava
 [Kod spravy][Specialny oddelovaci znak][Telo spravy]
 
+#### Struktura sprav
+    * [SOCK_REQ_CONNECT][SOCK_SPECIAL_SYMBOL][]
+    * [SOCK_REQ_DISCONNECT][SOCK_SPECIAL_SYMBOL][]
+    * [SOCK_REQ_REGISTER][SOCK_SPECIAL_SYMBOL][(LOGIN)(SOCK_SPECIAL_SYMBOL)(PASSWORD)]
+    * ...
+
 ---
 ### Zodpovednosti
 
@@ -31,7 +37,7 @@ Chat app
   * pameta si vsetkych zaregistrovanych uzivatelov
   * pameta si kto je s kym kontakt
   * vie kto je aktualne prihlaseny
-  * pameta si vsetky spravy ktore si poslali uzivatelia (???)
+  * pameta si vsetky nedorucene spravy (neuchovava historiu sprav)
 
 #### Client
   * vie svoje meno (nick)

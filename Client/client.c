@@ -13,12 +13,16 @@
 
 int main(int argc, char *argv[])
 {
-    int sockfd, n;
-    struct sockaddr_in serv_addr;
+    int sockfd;                         // socket pre spojenie so serverom
+    struct sockaddr_in serv_addr;       
     struct hostent* server;
 
-    char buffer[SOCK_MESSAGE_BUFFER_LENGTH];
-
+    // Buffer sprav, prostrednictvom ktorych prebieha komunikacia
+    char buffer[SOCK_MESSAGE_BUFFER_LENGTH];    
+    
+    // Meno aktualne prihlaseneho usera (nastavi sa po prihlaseni)
+    char username[USER_USERNAME_MAX_LENGTH];  
+    
     // Skontrolujeme či máme dostatok argumentov.
     if (argc < 3)
     {
@@ -69,7 +73,7 @@ int main(int argc, char *argv[])
         return 5;
     }
     printf("%s\n", buffer); // Vypisanie odpovede servera
-    showStartMenu();    // Zobrazenie menu s moznostami prihlasit sa alebo registrovat
+    showStartMenu(&sockfd, buffer);    // Zobrazenie menu s moznostami prihlasit sa alebo registrovat
 
     
     // Hlavny cyklus s komunikaciou medzi serverom a prihlasenym klientom

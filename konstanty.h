@@ -8,6 +8,8 @@ const int SOCK_MESSAGE_BUFFER_LENGTH = 256; // Dlzka buffera ktory sa posiela so
 const char SOCK_SPECIAL_SYMBOL = '~';       // Specialny znak, ktorym sprava zacina a oddeluje kod spravy a telo spravy
 const int SOCK_MESSAGE_CODE_MAX_LENGTH = 3; // Maximalna dlzka ciselneho kodu spravy
 const int CLIENT_INITIAL_COUNT = 255;       // Pocet klientov, ktory je mozne obsluzit
+const int USER_USERNAME_MAX_LENGTH = 30;    // Maximalna dlzka uzivatelskeho mena
+const int USER_PASSWORD_MAX_LENGTH = 255;    // Maximalna dlzka uzivatelskeho hesla
 
 
 // SOCKETY (ciselne kody)
@@ -38,6 +40,14 @@ typedef struct {
     int newsockfd;
 } CLIENT_SOCKET;
 
+
+/**
+ * Prihlasovacie alebo registracne udaje konta uzivatela
+ */
+typedef struct {
+    char* username;
+    char* password;
+} ACCOUNT_CREDENTIALS;
 
 
 #endif
