@@ -34,7 +34,7 @@ int connectToServer(int* sockfd, char* buffer)
     addMessageCode(buffer, SOCK_REQ_CONNECT);
 
     // Pošleme správu cez socket servru.
-    int n = write(*sockfd, buffer, strlen(buffer));
+    int n = write(*sockfd, buffer, strlen(buffer) + 1);
     if (n < 0)
     {
        perror("Error writing to socket");
@@ -64,7 +64,7 @@ int disconnectFromServer(int* sockfd, char* buffer)
     addMessageCode(buffer, SOCK_REQ_DISCONNECT);
     
     // Pošleme správu cez socket servru.
-    int n = write(*sockfd, buffer, strlen(buffer));
+    int n = write(*sockfd, buffer, strlen(buffer) + 1);
     if (n < 0)
     {
        perror("Error writing to socket");
@@ -92,7 +92,6 @@ int disconnectFromServer(int* sockfd, char* buffer)
 */
 int registerMe(int* sockfd, char* buffer, ACCOUNT_CREDENTIALS* credentials)
 {
-    memset(buffer, 0, SOCK_BUFFER_LENGTH);
     addMessageCode(buffer, SOCK_REQ_REGISTER);
     
     strcat(buffer, credentials->username);
@@ -100,7 +99,7 @@ int registerMe(int* sockfd, char* buffer, ACCOUNT_CREDENTIALS* credentials)
     strcat(buffer, credentials->password);
 
     // Pošleme správu cez socket servru.
-    int n = write(*sockfd, buffer, SOCK_BUFFER_LENGTH);
+    int n = write(*sockfd, buffer, strlen(buffer) + 1);
     if (n < 0)
     {
        perror("Error writing to socket");
@@ -109,7 +108,7 @@ int registerMe(int* sockfd, char* buffer, ACCOUNT_CREDENTIALS* credentials)
 
     // Načítame odpoveď od servra do buffra.
     memset(buffer, 0, SOCK_BUFFER_LENGTH);
-    n = read(*sockfd, buffer, SOCK_BUFFER_LENGTH);
+    n = read(*sockfd, buffer, SOCK_BUFFER_LENGTH - 1);
     if (n < 0)
     {
         perror("Error reading from socket");

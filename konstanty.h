@@ -12,7 +12,7 @@ const int SOCK_BUFFER_LENGTH = 256;         // Dlzka buffera ktory sa posiela so
 const char SOCK_SPECIAL_SYMBOL = '~';       // Specialny znak, ktorym sprava zacina a oddeluje kod spravy a telo spravy
 const int SOCK_MESSAGE_CODE_MAX_LENGTH = 3; // Maximalna dlzka ciselneho kodu spravy
 // Dlzka samotnej spravy (messageText) ktory sa posiela socketmi
-const int SOCK_MESSAGE_LENGTH = SOCK_BUFFER_LENGTH - SOCK_MESSAGE_CODE_MAX_LENGTH - 1;
+const int SOCK_MESSAGE_LENGTH = SOCK_BUFFER_LENGTH - SOCK_MESSAGE_CODE_MAX_LENGTH - 3;
 const int CLIENT_INITIAL_COUNT = 255;       // Pocet klientov, ktory je mozne obsluzit
 const int CLIENT_MAX_ACCOUNT_COUNT = 255;   // Maximalny pocet uzivatelskych uctov, ktore sa mozu zaregistrovat
 const int USER_USERNAME_MIN_LENGTH = 3;     // Minimalna dlzka uzivatelskeho mena
@@ -63,7 +63,7 @@ typedef struct {
  * Klientsky socket
  */
 typedef struct {
-    int newsockfd;                      // Socket pripojeneho klinta
+    int newsockfd;                      // Socket pripojeneho klienta
     
     USER_ACCOUNT* accounts;             // Pole vsetkych zaregistrovanych uzivatelskych kont
     int accounts_count;                 // Pocet platnych prvkov (kont)

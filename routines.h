@@ -5,6 +5,8 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <bits/stdio2.h>
+#include <bits/string_fortified.h>
 
 #include "konstanty.h"
 
@@ -57,6 +59,8 @@ ACCOUNT_CREDENTIALS* getCredentialsFromBuffer(char* buffer) {
     ACCOUNT_CREDENTIALS* credentials = malloc(sizeof(ACCOUNT_CREDENTIALS));
     credentials->username = malloc(sizeof(char) * USER_USERNAME_MAX_LENGTH);
     credentials->password = malloc(sizeof(char) * USER_PASSWORD_MAX_LENGTH);
+    memset(credentials->username, 0, USER_USERNAME_MAX_LENGTH);
+    memset(credentials->password, 0, USER_PASSWORD_MAX_LENGTH);
     
     int first = 0;
     while(1) {

@@ -63,9 +63,10 @@ void clientDisconnectHandler(CLIENT_SOCKET* p) {
 /**
  * Obsluha poziadavky pre registraciu noveho klienta
  * @param p
+ * @param buffer - buffer pre spravu klientovi
  * @param credentials - udaje noveho uzivatela
  */
-void clientRegisterHandler(CLIENT_SOCKET* p, ACCOUNT_CREDENTIALS* credentials) {
+void clientRegisterHandler(CLIENT_SOCKET* p, char* buffer, ACCOUNT_CREDENTIALS* credentials) {
     printf("Klient poziadal o registraciu\nmeno: %s\nHeslo: %s\n", credentials->username, credentials->password);
 
     int registration_successful;    // priznak ci prebehla registracia uspesne
@@ -113,7 +114,6 @@ void clientRegisterHandler(CLIENT_SOCKET* p, ACCOUNT_CREDENTIALS* credentials) {
     }
 
     // Odpoved klientovi
-    char* buffer = malloc(SOCK_BUFFER_LENGTH);
     memset(buffer, 0, SOCK_BUFFER_LENGTH);
     
     char* messageCode;
@@ -125,13 +125,12 @@ void clientRegisterHandler(CLIENT_SOCKET* p, ACCOUNT_CREDENTIALS* credentials) {
     strcat(buffer, &SOCK_SPECIAL_SYMBOL);
     strcat(buffer, messageText);
     
-    int n = write(p->newsockfd, buffer, strlen(buffer));
+    int n = write(p->newsockfd, buffer, strlen(buffer) + 1);
     if (n < 0)
     {
         perror("Error writing to socket");
     }
     
-    free(buffer);
     free(messageCode);
     free(messageText);
 }
@@ -153,7 +152,7 @@ void* clientHandler(void* args) {
 
         // Načítame správu od klienta cez socket do buffra.
         memset(buffer, 0, SOCK_BUFFER_LENGTH);
-        int n = read(p->newsockfd, buffer, SOCK_BUFFER_LENGTH);
+        int n = read(p->newsockfd, buffer, SOCK_BUFFER_LENGTH - 1);
         if (n < 0)
         {
             perror("Error reading from socket");
@@ -168,7 +167,8 @@ void* clientHandler(void* args) {
             clientDisconnectHandler(p);
             isEnd = 1;
         } else if (messageCode == SOCK_REQ_REGISTER) {
-            clientRegisterHandler(p, getCredentialsFromBuffer(buffer));
+            ACCOUNT_CREDENTIALS* credentials = getCredentialsFromBuffer(buffer);
+            clientRegisterHandler(p, buffer, credentials);
         } else {
             // Do nothing
         }
