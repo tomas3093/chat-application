@@ -135,6 +135,16 @@ void clientRegisterHandler(CLIENT_SOCKET* p, char* buffer, ACCOUNT_CREDENTIALS* 
 
 
 /**
+ * Obsluha poziadavky pre prihlasenie klienta
+ * @param p
+ * @param buffer
+ * @param credentials
+ */
+void clientLoginHandler(CLIENT_SOCKET* p, char* buffer, ACCOUNT_CREDENTIALS* credentials) {
+    // TODO
+}
+
+/**
  * Obsluha daneho klienta v jeho vlakne
  * @return 
  */

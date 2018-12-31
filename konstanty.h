@@ -37,6 +37,8 @@ const int SOCK_RES_CONNECT = 100;           // Uspesne pripojenie
 const int SOCK_RES_DISCONNECT = 101;        // Uspesne odpojenie
 const int SOCK_RES_REGISTER_OK = 102;       // Uspesna registracia
 const int SOCK_RES_REGISTER_FAIL = 103;     // Neuspesna registracia
+const int SOCK_RES_LOGIN_OK = 104;          // Uspesne prihlasenie
+const int SOCK_RES_LOGIN_FAIL = 105;        // Neuspesne prihlasenie
 
 // ...
 
