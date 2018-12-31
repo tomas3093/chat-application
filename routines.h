@@ -12,7 +12,7 @@
 
 
 /**
- * Vrati ciselny kod zadanej spravy
+ * Vrati ciselny kod typu zo zadanej spravy
  * @param messageBuffer
  * @return 
  */
@@ -23,7 +23,7 @@ int getMessageCode(const char* messageBuffer) {
     int i;
     for(i = 0; i < SOCK_MESSAGE_CODE_MAX_LENGTH; i++) {
         if (messageBuffer[i] != SOCK_SPECIAL_SYMBOL) {
-            strcat(number, &messageBuffer[i]);
+            number[i] = messageBuffer[i];
         } else {
             break;
         }        
