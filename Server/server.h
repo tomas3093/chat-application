@@ -48,7 +48,7 @@ void clientDisconnectHandler(CLIENT_SOCKET* p) {
     char* messageCode = getStrMessageCode(SOCK_RES_DISCONNECT);
     strcat(buffer, messageCode);
     strcat(buffer, &SOCK_SPECIAL_SYMBOL);
-    strcat(buffer, "Server prijal ziadost o disconnect.\n\nDovidenia.\n");
+    strcat(buffer, "Server prijal ziadost o disconnect.\n\nDovidenia.");
     int n = write(p->newsockfd, buffer, strlen(buffer) + 1);
     free(buffer);
     free(messageCode);
@@ -67,8 +67,6 @@ void clientDisconnectHandler(CLIENT_SOCKET* p) {
  * @param credentials - udaje noveho uzivatela
  */
 void clientRegisterHandler(CLIENT_SOCKET* p, char* buffer, ACCOUNT_CREDENTIALS* credentials) {
-    printf("Klient poziadal o registraciu\nmeno: %s\nHeslo: %s\n", credentials->username, credentials->password);
-
     int registration_successful;    // priznak ci prebehla registracia uspesne
     char* messageText = malloc(sizeof(char) * SOCK_MESSAGE_LENGTH);  // odpoved
     
@@ -100,17 +98,17 @@ void clientRegisterHandler(CLIENT_SOCKET* p, char* buffer, ACCOUNT_CREDENTIALS* 
             p->accounts[p->accounts_count] = *account;
             p->accounts_count++;
             registration_successful = 1;
-            messageText = "Registracia bola uspesna.\n";
+            messageText = "Registracia bola uspesna.";
         } else {
             free(account);
             registration_successful = 0;
-            messageText = "Registracia zlyhala. Nie je dostatocna velkost pamate.\n";
+            messageText = "Registracia zlyhala. Nie je dostatocna velkost pamate.";
         }
         pthread_mutex_unlock(p->accounts_mutex);
         
     } else {
         registration_successful = 0;
-        messageText = "Registracia zlyhala. Meno alebo heslo nema spravnu dlzku.\n";
+        messageText = "Registracia zlyhala. Meno alebo heslo nema spravnu dlzku.";
     }
 
     // Odpoved klientovi
@@ -132,7 +130,7 @@ void clientRegisterHandler(CLIENT_SOCKET* p, char* buffer, ACCOUNT_CREDENTIALS* 
     }
     
     free(messageCode);
-    free(messageText);
+    //free(messageText);
 }
 
 
