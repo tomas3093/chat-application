@@ -238,7 +238,6 @@ void showStartMenu(int* sockfd, char* buffer, int* noExit, char* username) {
  * @param username - meno prihlaseneho uzivatela
  */
 void showMenuAuthenticated(int* sockfd, char* buffer, int* noExit, char* username) {
-    system("clear");
     printf("\n### Chat app ###\n\n");
     printf("You are logged as %s\n", username);
     printf("Menu:\n");
