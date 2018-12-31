@@ -21,7 +21,7 @@ int getMessageCode(const char* messageBuffer) {
     int i;
     for(i = 0; i < SOCK_MESSAGE_CODE_MAX_LENGTH; i++) {
         if (messageBuffer[i] != SOCK_SPECIAL_SYMBOL) {
-            strcat(&number, &messageBuffer[i]);
+            strcat(number, &messageBuffer[i]);
         } else {
             break;
         }        
@@ -37,8 +37,8 @@ int getMessageCode(const char* messageBuffer) {
 
 
 /**
- * Vrati kod zadanej spravy ako retazec
- * @param messageBuffer
+ * Vrati ciselny kod spravy ako retazec
+ * @param code
  * @return 
  */
 char* getStrMessageCode(int code) {

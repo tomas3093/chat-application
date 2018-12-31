@@ -47,12 +47,18 @@ Chat app
 ---
 ### Struktury
     * CLIENT_SOCKET
+    * ACCOUNT_CREDENTIALS
+    * USER_ACCOUNT
     * ...
 
 #### Data na serveri
     * int sockfd - socket servera
     * int client_sockets[CLIENT_INITIAL_COUNT] - pole vsetkych klientskych soketov
     * pthread_t client_threads[CLIENT_INITIAL_COUNT] - pole vsetkych klientskych vlakien
+    * USER_ACCOUNT accounts[CLIENT_MAX_ACCOUNT_COUNT] - pole vsetkych zaregistrovanych kont
+
+#### Data u klienta
+    * ...
 
 
 ---

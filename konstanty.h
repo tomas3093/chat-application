@@ -3,13 +3,22 @@
 #ifndef _KONSTANTY_INCLUDED
 #define _KONSTANTY_INCLUDED
 
+#include <signal.h>
+#include <pthread.h>
+
+
 // VSEOBECNE
-const int SOCK_MESSAGE_BUFFER_LENGTH = 256; // Dlzka buffera ktory sa posiela socketmi
+const int SOCK_BUFFER_LENGTH = 256;         // Dlzka buffera ktory sa posiela socketmi
 const char SOCK_SPECIAL_SYMBOL = '~';       // Specialny znak, ktorym sprava zacina a oddeluje kod spravy a telo spravy
 const int SOCK_MESSAGE_CODE_MAX_LENGTH = 3; // Maximalna dlzka ciselneho kodu spravy
+// Dlzka samotnej spravy (messageText) ktory sa posiela socketmi
+const int SOCK_MESSAGE_LENGTH = SOCK_BUFFER_LENGTH - SOCK_MESSAGE_CODE_MAX_LENGTH - 1;
 const int CLIENT_INITIAL_COUNT = 255;       // Pocet klientov, ktory je mozne obsluzit
+const int CLIENT_MAX_ACCOUNT_COUNT = 255;   // Maximalny pocet uzivatelskych uctov, ktore sa mozu zaregistrovat
+const int USER_USERNAME_MIN_LENGTH = 3;     // Minimalna dlzka uzivatelskeho mena
 const int USER_USERNAME_MAX_LENGTH = 30;    // Maximalna dlzka uzivatelskeho mena
-const int USER_PASSWORD_MAX_LENGTH = 255;    // Maximalna dlzka uzivatelskeho hesla
+const int USER_PASSWORD_MIN_LENGTH = 6;     // Minimalna dlzka uzivatelskeho hesla
+const int USER_PASSWORD_MAX_LENGTH = 255;   // Maximalna dlzka uzivatelskeho hesla
 
 
 // SOCKETY (ciselne kody)
@@ -34,20 +43,33 @@ const int SOCK_RES_REGISTER_FAIL = 103;     // Neuspesna registracia
 // Struktury
 
 /**
- * Klientsky socket
- */
-typedef struct {
-    int newsockfd;
-} CLIENT_SOCKET;
-
-
-/**
  * Prihlasovacie alebo registracne udaje konta uzivatela
  */
 typedef struct {
     char* username;
     char* password;
 } ACCOUNT_CREDENTIALS;
+
+
+/**
+ * Struktura obsahuje konto uzivatela a stav ci je aktivne (nie je vymazane)
+ */
+typedef struct {
+    ACCOUNT_CREDENTIALS* credentials;
+    int active;     // priznak 0/1
+} USER_ACCOUNT;
+
+/**
+ * Klientsky socket
+ */
+typedef struct {
+    int newsockfd;                      // Socket pripojeneho klinta
+    
+    USER_ACCOUNT* accounts;             // Pole vsetkych zaregistrovanych uzivatelskych kont
+    int accounts_count;                 // Pocet platnych prvkov (kont)
+    pthread_mutex_t* accounts_mutex;    // mutex pre pristup k accounts
+    
+} CLIENT_SOCKET;
 
 
 #endif

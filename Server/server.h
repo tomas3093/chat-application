@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <strings.h>
+#include <pthread.h>
 
 #include "../konstanty.h"
 #include "../routines.h"
@@ -11,12 +12,12 @@
  * Obsluha poziadavky pre pripojenie klienta
  * @param p
  */
-void clientConnect(CLIENT_SOCKET* p) {
+void clientConnectHandler(CLIENT_SOCKET* p) {
     printf("Klient sa pripojil\n");
 
     // Pošleme odpoveď klientovi.
-    char* buffer = malloc(SOCK_MESSAGE_BUFFER_LENGTH);
-    memset(buffer, 0, SOCK_MESSAGE_BUFFER_LENGTH);
+    char* buffer = malloc(SOCK_BUFFER_LENGTH);
+    memset(buffer, 0, SOCK_BUFFER_LENGTH);
 
     char* messageCode = getStrMessageCode(SOCK_REQ_CONNECT);
     strcat(buffer, messageCode);
@@ -37,12 +38,12 @@ void clientConnect(CLIENT_SOCKET* p) {
  * Obsluha poziadavky pre odpojenie klienta
  * @param p
  */
-void clientDisconnect(CLIENT_SOCKET* p) {
+void clientDisconnectHandler(CLIENT_SOCKET* p) {
     printf("Klient sa odpojil\n");
 
     // Pošleme odpoveď klientovi.
-    char* buffer = malloc(SOCK_MESSAGE_BUFFER_LENGTH);
-    memset(buffer, 0, SOCK_MESSAGE_BUFFER_LENGTH);
+    char* buffer = malloc(SOCK_BUFFER_LENGTH);
+    memset(buffer, 0, SOCK_BUFFER_LENGTH);
 
     char* messageCode = getStrMessageCode(SOCK_RES_DISCONNECT);
     strcat(buffer, messageCode);
@@ -62,30 +63,77 @@ void clientDisconnect(CLIENT_SOCKET* p) {
 /**
  * Obsluha poziadavky pre registraciu noveho klienta
  * @param p
+ * @param credentials - udaje noveho uzivatela
  */
-void clientRegister(CLIENT_SOCKET* p, ACCOUNT_CREDENTIALS* credentials) {
+void clientRegisterHandler(CLIENT_SOCKET* p, ACCOUNT_CREDENTIALS* credentials) {
     printf("Klient poziadal o registraciu\nmeno: %s\nHeslo: %s\n", credentials->username, credentials->password);
 
-    // Pošleme odpoveď klientovi.
-    char* buffer = malloc(SOCK_MESSAGE_BUFFER_LENGTH);
-    memset(buffer, 0, SOCK_MESSAGE_BUFFER_LENGTH);
-
-    // Vyhodnotit ci zadal dobre udaje
-    // TODO
-    // prejst pole vsetkych uzivatelov ci uz nahodou dane meno nie je obsadene
+    int registration_successful;    // priznak ci prebehla registracia uspesne
+    char* messageText = malloc(sizeof(char) * SOCK_MESSAGE_LENGTH);  // odpoved
     
-    char* messageCode = getStrMessageCode(SOCK_RES_REGISTER_OK);
+    // Validita zadanych udajov
+    if (    strlen(credentials->username) >= USER_USERNAME_MIN_LENGTH && 
+            strlen(credentials->username) <= USER_USERNAME_MAX_LENGTH &&
+            strlen(credentials->password) >= USER_PASSWORD_MIN_LENGTH &&
+            strlen(credentials->password) <= USER_PASSWORD_MAX_LENGTH) {
+
+        // Vytvorenie struktury
+        USER_ACCOUNT* account = malloc(sizeof(USER_ACCOUNT));
+        account->credentials = credentials;
+        account->active = 1;
+        
+        // Kontrola ci je zadane meno unikatne
+        int isUnique = 1;
+        pthread_mutex_lock(p->accounts_mutex);
+        for(int i = 0; i < p->accounts_count; i++) {
+            if (strcmp(p->accounts[i].credentials->username, credentials->username) == 0) {
+                isUnique = 0;
+                break;
+            }
+        }
+        
+        // Je unikatne a je volne miesto
+        if (isUnique == 1 && p->accounts_count < CLIENT_MAX_ACCOUNT_COUNT) {
+            
+            // Registracia
+            p->accounts[p->accounts_count] = *account;
+            p->accounts_count++;
+            registration_successful = 1;
+            messageText = "Registracia bola uspesna.\n";
+        } else {
+            free(account);
+            registration_successful = 0;
+            messageText = "Registracia zlyhala. Nie je dostatocna velkost pamate.\n";
+        }
+        pthread_mutex_unlock(p->accounts_mutex);
+        
+    } else {
+        registration_successful = 0;
+        messageText = "Registracia zlyhala. Meno alebo heslo nema spravnu dlzku.\n";
+    }
+
+    // Odpoved klientovi
+    char* buffer = malloc(SOCK_BUFFER_LENGTH);
+    memset(buffer, 0, SOCK_BUFFER_LENGTH);
+    
+    char* messageCode;
+    messageCode = registration_successful == 1 ? 
+        getStrMessageCode(SOCK_RES_REGISTER_OK) : getStrMessageCode(SOCK_RES_REGISTER_FAIL);
+    
+    
     strcat(buffer, messageCode);
     strcat(buffer, &SOCK_SPECIAL_SYMBOL);
-    strcat(buffer, "Registracia uspesna.\n");
-    int n = write(p->newsockfd, buffer, strlen(buffer) + 1);
-    free(buffer);
-    free(messageCode);
-
+    strcat(buffer, messageText);
+    
+    int n = write(p->newsockfd, buffer, strlen(buffer));
     if (n < 0)
     {
         perror("Error writing to socket");
     }
+    
+    free(buffer);
+    free(messageCode);
+    free(messageText);
 }
 
 
@@ -97,15 +145,15 @@ void* clientHandler(void* args) {
     
     CLIENT_SOCKET* p = (CLIENT_SOCKET*)args;
     
-    char buffer[SOCK_MESSAGE_BUFFER_LENGTH];   // buffer pre spravy odosielane medzi serverom a klientom
+    char buffer[SOCK_BUFFER_LENGTH];   // buffer pre spravy odosielane medzi serverom a klientom
     
     // Hlavny cyklus s komunikaciou medzi serverom a klientom
     int isEnd = 0;          // podmienka ukoncenia cyklu
     while (isEnd == 0) {
 
         // Načítame správu od klienta cez socket do buffra.
-        memset(buffer, 0, SOCK_MESSAGE_BUFFER_LENGTH);
-        int n = read(p->newsockfd, buffer, SOCK_MESSAGE_BUFFER_LENGTH - 1);
+        memset(buffer, 0, SOCK_BUFFER_LENGTH);
+        int n = read(p->newsockfd, buffer, SOCK_BUFFER_LENGTH);
         if (n < 0)
         {
             perror("Error reading from socket");
@@ -115,12 +163,12 @@ void* clientHandler(void* args) {
         // Zistenie typu spravy a zavolanie danej obsluhy
         int messageCode = getMessageCode(buffer);
         if (messageCode == SOCK_REQ_CONNECT) {
-            clientConnect(p);
+            clientConnectHandler(p);
         } else if (messageCode == SOCK_REQ_DISCONNECT) {
-            clientDisconnect(p);
+            clientDisconnectHandler(p);
             isEnd = 1;
         } else if (messageCode == SOCK_REQ_REGISTER) {
-            clientRegister(p, getCredentialsFromBuffer(buffer));
+            clientRegisterHandler(p, getCredentialsFromBuffer(buffer));
         } else {
             // Do nothing
         }

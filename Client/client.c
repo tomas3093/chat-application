@@ -18,10 +18,13 @@ int main(int argc, char *argv[])
     struct hostent* server;
 
     // Buffer sprav, prostrednictvom ktorych prebieha komunikacia
-    char buffer[SOCK_MESSAGE_BUFFER_LENGTH];    
+    char buffer[SOCK_BUFFER_LENGTH];    
     
     // Meno aktualne prihlaseneho usera (nastavi sa po prihlaseni)
     char username[USER_USERNAME_MAX_LENGTH];  
+    
+    // Priznak ci sa ma pokracovat v obsluhe (ukoncenie nekonecneho cyklu)
+    int looping;
     
     // Skontrolujeme či máme dostatok argumentov.
     if (argc < 3)
@@ -73,18 +76,15 @@ int main(int argc, char *argv[])
         return 5;
     }
     printf("%s\n", buffer); // Vypisanie odpovede servera
-    showStartMenu(&sockfd, buffer);    // Zobrazenie menu s moznostami prihlasit sa alebo registrovat
+    showStartMenu(&sockfd, buffer, &looping, username);    // Zobrazenie menu s moznostami prihlasit sa alebo registrovat
 
+    // TODO Pokracovat iba ak je username vyplneny
     
     // Hlavny cyklus s komunikaciou medzi serverom a prihlasenym klientom
-    while (1) {
+    while (looping == 1) {
 
-        // TODO
-        printf("Stop\n");
-        sleep(3);
-        disconnectFromServer(&sockfd, buffer);
-        sleep(1);
-        break;
+        // Menu pre prihlaseneho uzivatela
+        showMenuAuthenticated(&sockfd, buffer, &looping, username);
 
         /*
         // Vyzveme používateľa aby zadal text správy pre server.

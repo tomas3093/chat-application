@@ -25,6 +25,11 @@ int main(int argc, char *argv[])
     
     int client_sockets[CLIENT_INITIAL_COUNT];
     pthread_t client_threads[CLIENT_INITIAL_COUNT];
+    
+    USER_ACCOUNT accounts[CLIENT_MAX_ACCOUNT_COUNT];
+    int accounts_count = 0;                             // najvyssi platny index v poli accounts
+    pthread_mutex_t accounts_mutex;
+    pthread_mutex_init(&accounts_mutex, NULL);
 
     // Skontrolujeme či máme dostatok argumentov.
     if (argc < 2)
@@ -75,7 +80,10 @@ int main(int argc, char *argv[])
         }
         
         CLIENT_SOCKET clientSock = {
-            newsockfd
+            newsockfd,
+            accounts,
+            accounts_count,
+            &accounts_mutex
         };
         
         // Vytvorenie vlakna pre obsluhu klienta
