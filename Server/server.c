@@ -79,7 +79,10 @@ int main(int argc, char *argv[])
             return 3;
         }
         
-        CLIENT_SOCKET clientSock = {
+        // Ulozenie noveho socketu
+        client_sockets[i] = newsockfd;
+        
+        CLIENT_SOCKET sockData = {
             newsockfd,
             accounts,
             accounts_count,
@@ -87,8 +90,8 @@ int main(int argc, char *argv[])
         };
         
         // Vytvorenie vlakna pre obsluhu klienta
-        pthread_create(&client_threads[i], NULL, clientHandler, &clientSock);
-        printf("Client %d. connected.\n", i);   
+        pthread_create(&client_threads[i], NULL, clientHandler, &sockData);
+        printf("Client %d. connected.\n", i + 1);   
     }
     
     
@@ -99,6 +102,10 @@ int main(int argc, char *argv[])
     
     printf("Server stopped.\n\n");
 
+    // Zatvorenie klientskych socketov
+    for(int i = 0; i < CLIENT_INITIAL_COUNT; i++) {
+        close(client_sockets[i]);
+    }
     close(sockfd);
 
     return 0;
