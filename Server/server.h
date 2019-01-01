@@ -19,7 +19,7 @@ void clientConnectHandler(CLIENT_SOCKET* p, char* buffer) {
     addMessageCode(buffer, SOCK_REQ_CONNECT);
     strcat(buffer, "Server prijal ziadost o connect.");
     
-    int n = write(p->newsockfd, buffer, strlen(buffer) + 1);
+    int n = write(*(p->client_sock), buffer, strlen(buffer) + 1);
     if (n < 0)
     {
         perror("Error writing to socket");
@@ -38,7 +38,7 @@ void clientDisconnectHandler(CLIENT_SOCKET* p, char* buffer) {
     addMessageCode(buffer, SOCK_RES_DISCONNECT);
     strcat(buffer, "Server prijal ziadost o disconnect.\n\nDovidenia.");
     
-    int n = write(p->newsockfd, buffer, strlen(buffer) + 1);
+    int n = write(*(p->client_sock), buffer, strlen(buffer) + 1);
     if (n < 0)
     {
         perror("Error writing to socket");
@@ -54,7 +54,7 @@ void clientDisconnectHandler(CLIENT_SOCKET* p, char* buffer) {
  */
 void clientRegisterHandler(CLIENT_SOCKET* p, char* buffer, ACCOUNT_CREDENTIALS* credentials) {
     int registration_successful;    // priznak ci prebehla registracia uspesne
-    char* messageText = malloc(sizeof(char) * SOCK_MESSAGE_LENGTH);  // odpoved
+    char* messageText;              // odpoved
     
     // Validita zadanych udajov
     if (    strlen(credentials->username) >= USER_USERNAME_MIN_LENGTH && 
@@ -104,13 +104,11 @@ void clientRegisterHandler(CLIENT_SOCKET* p, char* buffer, ACCOUNT_CREDENTIALS* 
     addMessageCode(buffer, messageCode);
     strcat(buffer, messageText);
     
-    int n = write(p->newsockfd, buffer, strlen(buffer) + 1);
+    int n = write(*(p->client_sock), buffer, strlen(buffer) + 1);
     if (n < 0)
     {
         perror("Error writing to socket");
     }
-    
-    free(messageText);
 }
 
 
@@ -121,8 +119,8 @@ void clientRegisterHandler(CLIENT_SOCKET* p, char* buffer, ACCOUNT_CREDENTIALS* 
  * @param credentials - udaje uzivatela, ktory sa chce prihlasit
  */
 void clientLoginHandler(CLIENT_SOCKET* p, char* buffer, ACCOUNT_CREDENTIALS* credentials) {
-    int login_successful;    // priznak ci prebehlo prihlasenie uspesne
-    char* messageText = malloc(sizeof(char) * SOCK_MESSAGE_LENGTH);  // odpoved
+    int login_successful;   // priznak ci prebehlo prihlasenie uspesne
+    char* messageText;      // odpoved
     
     // Validita zadanych udajov
     if (    strlen(credentials->username) >= USER_USERNAME_MIN_LENGTH && 
@@ -169,13 +167,11 @@ void clientLoginHandler(CLIENT_SOCKET* p, char* buffer, ACCOUNT_CREDENTIALS* cre
     addMessageCode(buffer, messageCode);
     strcat(buffer, messageText);
     
-    int n = write(p->newsockfd, buffer, strlen(buffer) + 1);
+    int n = write(*(p->client_sock), buffer, strlen(buffer) + 1);
     if (n < 0)
     {
         perror("Error writing to socket");
     }
-    
-    free(messageText);
 }
 
 /**
@@ -187,28 +183,21 @@ void* clientHandler(void* args) {
     CLIENT_SOCKET* p = (CLIENT_SOCKET*)args;
     
     char buffer[SOCK_BUFFER_LENGTH];   // buffer pre spravy odosielane medzi serverom a klientom
+    int read_size;
     
     // Hlavny cyklus s komunikaciou medzi serverom a klientom
-    int isEnd = 0;          // podmienka ukoncenia cyklu
-    while (isEnd == 0) {
+    // Načítame správu od klienta cez socket do buffra.
+    memset(buffer, 0, SOCK_BUFFER_LENGTH);
+    while ((read_size = recv(*(p->client_sock), buffer, SOCK_BUFFER_LENGTH - 1, 0)) > 0) {
 
-        // Načítame správu od klienta cez socket do buffra.
-        memset(buffer, 0, SOCK_BUFFER_LENGTH);
-        int n = read(p->newsockfd, buffer, SOCK_BUFFER_LENGTH - 1);
-        if (n < 0)
-        {
-            perror("Error reading from socket");
-            return NULL;
-        }
-        
         // Zistenie typu spravy a zavolanie danej obsluhy
         int messageCode = getMessageCode(buffer);
-        
+
         if (messageCode == SOCK_REQ_CONNECT) {
             clientConnectHandler(p, buffer);
         } else if (messageCode == SOCK_REQ_DISCONNECT) {
             clientDisconnectHandler(p, buffer);
-            isEnd = 1;
+            break;  // koniec
         } else if (messageCode == SOCK_REQ_REGISTER) {
             ACCOUNT_CREDENTIALS* credentials = getCredentialsFromBuffer(buffer);
             clientRegisterHandler(p, buffer, credentials);
@@ -220,9 +209,20 @@ void* clientHandler(void* args) {
         } else {
             // Do nothing
         }
+        
+        // Vymazanie buffra
+        memset(buffer, 0, SOCK_BUFFER_LENGTH);
     }
+
+    if (read_size == 0) {
+        puts("Client disconnected");
+        fflush(stdout);
+    } else if (read_size < 0) {
+        perror("Receive failed");
+    }         
     
-    //close(p->newsockfd); zatvaranie az po joine v hlavnom vlakne
+    free(p->client_sock);
+    free(p);
       
-    return NULL;
+    return 0;
 }

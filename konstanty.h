@@ -67,8 +67,7 @@ typedef struct {
  * Klientsky socket
  */
 typedef struct {
-    int newsockfd;                      // Socket pripojeneho klienta
-    
+    int* client_sock;                   // Socket pripojeneho klienta
     USER_ACCOUNT* accounts;             // Pole vsetkych zaregistrovanych uzivatelskych kont
     int accounts_count;                 // Pocet platnych prvkov (kont)
     pthread_mutex_t* accounts_mutex;    // mutex pre pristup k accounts

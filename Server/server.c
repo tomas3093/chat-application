@@ -19,12 +19,11 @@
 
 int main(int argc, char *argv[])
 {
-    int sockfd;
+    int sockfd;         // Server socket descriptor
+    int client_sock;
+    int* new_sock;
     socklen_t cli_len;
     struct sockaddr_in serv_addr, cli_addr;
-    
-    int client_sockets[CLIENT_INITIAL_COUNT];
-    pthread_t client_threads[CLIENT_INITIAL_COUNT];
     
     USER_ACCOUNT accounts[CLIENT_MAX_ACCOUNT_COUNT];
     int accounts_count = 0;                             // najvyssi platny index v poli accounts
@@ -51,6 +50,7 @@ int main(int argc, char *argv[])
         perror("Error creating socket");
         return 1;
     }
+    puts("Socket created.");
 
     // Priradíme vyplnenú sieťovú adresu vytvorenému socketu.
     if (bind(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0)
@@ -58,55 +58,44 @@ int main(int argc, char *argv[])
         perror("Error binding socket address");
         return 2;
     }
+    puts("Bind done.");
 
     // Pripravíme socket pre príjmanie spojení od klientov. Maximálna dĺžka fronty neobslúžených spojení je 5.
     listen(sockfd, 5);
     cli_len = sizeof(cli_addr);
 
-    printf("Server started.\n\n");
+    printf("Server listening at 127.0.0.1:%s\n\n", argv[1]);
+    puts("Waiting for incomming connections...");
 
     
-    // TODO toto bude fungovat iba pre prvych n klientov, potom server skonci
     // Obsluha klientov
-    for(int i = 0; i < CLIENT_INITIAL_COUNT; i++) {
+    while(client_sock = accept(sockfd, (struct sockaddr*)&cli_addr, &cli_len)) {
         
-        // Počkáme na a príjmeme spojenie od klienta.
-        int newsockfd;
-        newsockfd = accept(sockfd, (struct sockaddr*)&cli_addr, &cli_len);
-        if (newsockfd < 0)
-        {
-            perror("ERROR on accept");
-            return 3;
+        puts("Connection accepted");
+        
+        pthread_t sniffer_thread;
+        new_sock = malloc(1);
+        *new_sock = client_sock;
+        
+        CLIENT_SOCKET* sockData = malloc(sizeof(CLIENT_SOCKET));
+        sockData->client_sock = new_sock;
+        sockData->accounts = accounts;
+        sockData->accounts_count = accounts_count;
+        sockData->accounts_mutex = &accounts_mutex;
+        
+        if (pthread_create(&sniffer_thread, NULL, clientHandler, sockData) < 0) {
+            perror("Could not create thread");
+            return 1;
         }
         
-        // Ulozenie noveho socketu
-        client_sockets[i] = newsockfd;
-        
-        CLIENT_SOCKET sockData = {
-            newsockfd,
-            accounts,
-            accounts_count,
-            &accounts_mutex
-        };
-        
-        // Vytvorenie vlakna pre obsluhu klienta
-        pthread_create(&client_threads[i], NULL, clientHandler, &sockData);
-        printf("Client %d. connected.\n", i + 1);   
+        //pthread_join(sniffer_thread, NULL);
+        puts("Handler assigned");   
     }
     
-    
-    // Join vlakien
-    for(int i = 0; i < CLIENT_INITIAL_COUNT; i++) {
-        pthread_join(client_threads[i], NULL);
+    if (client_sock < 0) {
+        perror("Accept failed");
+        return 1;
     }
-    
-    printf("Server stopped.\n\n");
-
-    // Zatvorenie klientskych socketov
-    for(int i = 0; i < CLIENT_INITIAL_COUNT; i++) {
-        close(client_sockets[i]);
-    }
-    close(sockfd);
 
     return 0;
 }
