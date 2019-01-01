@@ -34,7 +34,6 @@ int getMessageCode(const char* messageBuffer) {
     } else {
         return -1;
     }
-    
 }
 
 
@@ -48,6 +47,24 @@ char* getStrMessageCode(int code) {
     sprintf(messageCode, "%d", code);
     
     return messageCode;
+}
+
+
+/* Vytvori hlavicku spravy
+ * buffer - premenna do ktorej sa vytvori hlavicka
+ * messageCode - kod spravy pre ktoru sa ma vytvorit hlavicka
+ * return - stav s akym funkcia skoncila
+*/
+int addMessageCode(char* buffer, const int messageCode)
+{
+    char* code = getStrMessageCode(messageCode);
+    
+    memset(buffer, 0, SOCK_BUFFER_LENGTH);
+    strcat(buffer, code);
+    strcat(buffer, &SOCK_SPECIAL_SYMBOL);
+    free(code);
+
+    return 0;
 }
 
 

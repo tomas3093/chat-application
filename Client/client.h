@@ -6,24 +6,6 @@
 #include "../routines.h"
 
 
-/* Vytvori hlavicku spravy
- * buffer - premenna do ktorej sa vytvori hlavicka
- * messageCode - kod spravy pre ktoru sa ma vytvorit hlavicka
- * return - stav s akym funkcia skoncila
-*/
-int addMessageCode(char* buffer, const int messageCode)
-{
-    char* code = getStrMessageCode(messageCode);
-    
-    memset(buffer, 0, SOCK_BUFFER_LENGTH);
-    strcat(buffer, code);
-    strcat(buffer, &SOCK_SPECIAL_SYMBOL);
-    free(code);
-
-    return 0;
-}
-
-
 /* Pripojenie na server
  * sockfd - inicializovany a pripojeny socket
  * buffer - premenna v ktorej sa vrati odpoved servera
@@ -38,7 +20,7 @@ int connectToServer(int* sockfd, char* buffer)
     if (n < 0)
     {
        perror("Error writing to socket");
-       return 5;
+       return SOCK_RES_ERROR;
     }
 
     // Načítame odpoveď od servra do buffra.
@@ -47,7 +29,7 @@ int connectToServer(int* sockfd, char* buffer)
     if (n < 0)
     {
         perror("Error reading from socket");
-        return 6;
+        return SOCK_RES_ERROR;
     }
 
     return 0;
@@ -68,7 +50,7 @@ int disconnectFromServer(int* sockfd, char* buffer)
     if (n < 0)
     {
        perror("Error writing to socket");
-       return 5;
+       return SOCK_RES_ERROR;
     }
 
     // Načítame odpoveď od servra do buffra.
@@ -77,7 +59,7 @@ int disconnectFromServer(int* sockfd, char* buffer)
     if (n < 0)
     {
         perror("Error reading from socket");
-        return 6;
+        return SOCK_RES_ERROR;
     }
 
     return 0;
@@ -90,7 +72,7 @@ int disconnectFromServer(int* sockfd, char* buffer)
  * credentials - registracne udaje
  * return - stav s akym funkcia skoncila
 */
-int registerMe(int* sockfd, char* buffer, ACCOUNT_CREDENTIALS* credentials)
+int registerNewClient(int* sockfd, char* buffer, ACCOUNT_CREDENTIALS* credentials)
 {
     addMessageCode(buffer, SOCK_REQ_REGISTER);
     
@@ -103,7 +85,7 @@ int registerMe(int* sockfd, char* buffer, ACCOUNT_CREDENTIALS* credentials)
     if (n < 0)
     {
        perror("Error writing to socket");
-       return 5;
+       return SOCK_RES_REGISTER_FAIL;
     }
 
     // Načítame odpoveď od servra do buffra.
@@ -112,7 +94,7 @@ int registerMe(int* sockfd, char* buffer, ACCOUNT_CREDENTIALS* credentials)
     if (n < 0)
     {
         perror("Error reading from socket");
-        return 6;
+        return SOCK_RES_REGISTER_FAIL;
     }
     
     // Zistenie s akym stavom prebehla registracia
@@ -126,10 +108,9 @@ int registerMe(int* sockfd, char* buffer, ACCOUNT_CREDENTIALS* credentials)
  * sockfd - inicializovany a pripojeny socket
  * buffer - premenna v ktorej sa vrati odpoved servera
  * credentials - prihlasovacie udaje
- * username - smernik na miesto kde sa ulozi meno uzivatela po uspesnom prihlaseni
- * return - stav s akym funkcia skoncila
+ * return - stav s akym funkcia skoncila (ak 0 tak prihlasenie bolo uspesne)
 */
-int login(int* sockfd, char* buffer, ACCOUNT_CREDENTIALS* credentials, char* username)
+int loginClient(int* sockfd, char* buffer, ACCOUNT_CREDENTIALS* credentials)
 {
     addMessageCode(buffer, SOCK_REQ_LOGIN);
     
@@ -142,7 +123,7 @@ int login(int* sockfd, char* buffer, ACCOUNT_CREDENTIALS* credentials, char* use
     if (n < 0)
     {
        perror("Error writing to socket");
-       return 5;
+       return SOCK_RES_LOGIN_FAIL;
     }
 
     // Načítame odpoveď od servra do buffra.
@@ -151,12 +132,13 @@ int login(int* sockfd, char* buffer, ACCOUNT_CREDENTIALS* credentials, char* use
     if (n < 0)
     {
         perror("Error reading from socket");
-        return 6;
+        return SOCK_RES_LOGIN_FAIL;
     }
     
-    *username = *(credentials->username);
-
-    return 0;
+    // Zistenie s akym stavom prebehlo prihlasenie
+    int responseCode = getMessageCode(buffer);
+    
+    return responseCode;
 }
 
 
@@ -167,7 +149,7 @@ int login(int* sockfd, char* buffer, ACCOUNT_CREDENTIALS* credentials, char* use
  * @param noExit - adresa kam sa ulozi priznak ci uzivatel ukoncil aplikaciu (0 - koniec, 1 - pokracuje sa)
  * @param username - adresa kam sa ulozi meno prihlaseneho uzivatela
  */
-void showStartMenu(int* sockfd, char* buffer, int* noExit, char* username) {
+int showStartMenu(int* sockfd, char* buffer, int* noExit, char* username) {
     printf("\n### Chat app ###\n\n");
     printf("Menu:\n");
     printf("1. Login\n");
@@ -177,24 +159,46 @@ void showStartMenu(int* sockfd, char* buffer, int* noExit, char* username) {
     int option;
     scanf("%d", &option);
     
-    char* username_input = malloc(USER_USERNAME_MAX_LENGTH * sizeof(char));
-    char* password_input = malloc(USER_PASSWORD_MAX_LENGTH * sizeof(char));
+    char username_input[USER_USERNAME_MAX_LENGTH];
+    char password_input[USER_PASSWORD_MAX_LENGTH];
     int value;
     
     switch(option) {
         case 1:
-            
-            //TODO Cyklus 3 krat zadanie mena a hesla, ak zada zle tak skonci breakom a noExit = 0
-            
-            printf("Enter your login:\t");
-            scanf("%s", username_input);
-            printf("\nEnter your password:\t");
-            scanf("%s", password_input);
-            
-            printf("\nLogin: %s\nPassword: %s\n\n", username_input, password_input);
-            
-            printf("NOT IMPLEMENTED YET!\n");
-            *noExit = 1;
+            // Cyklus 3 pokusy na zadanie mena a hesla
+            *noExit = 0;
+            for(int i = 0; i < 3; i++) {
+                printf("Enter your login:\t");
+                scanf("%s", username_input);
+                printf("\nEnter your password:\t");
+                scanf("%s", password_input);
+                
+                if (strlen(username_input) > 0 && strlen(password_input) > 0) {
+                    
+                    ACCOUNT_CREDENTIALS c = {
+                        username_input,
+                        password_input
+                    };
+                    
+                    value = loginClient(sockfd, buffer, &c);
+                    if (value == SOCK_RES_LOGIN_OK) {
+                        
+                        // Uspesne prihlasenie
+                        printf("Login successful.\n");
+                        memcpy(username, c.username, strlen(c.username));
+                        *noExit = 1;
+                        break;
+                        
+                    } else {
+                        printf("Login failed.\n");
+                        continue;
+                    }
+
+                } else {
+                    printf("Login failed.\n");
+                    continue;
+                }
+            }
             break;
             
         case 2:
@@ -204,18 +208,18 @@ void showStartMenu(int* sockfd, char* buffer, int* noExit, char* username) {
             scanf("%s", password_input);
             
             ACCOUNT_CREDENTIALS c = {username_input, password_input};
-            value = registerMe(sockfd, buffer, &c);
+            value = registerNewClient(sockfd, buffer, &c);
             if (value == SOCK_RES_REGISTER_OK) {
                 printf("\nRegistration successful!\n");
-                sleep(2);
+                sleep(1);
                 *noExit = 1;
                 break;
             } 
             else {
                 // Chyba pri registracii
                 printf("\nRegistration failed! Entered username is not available.\n");
-                sleep(2);
-                *noExit = 0;
+                sleep(1);
+                *noExit = 1;
                 break;
             }
             
@@ -225,8 +229,7 @@ void showStartMenu(int* sockfd, char* buffer, int* noExit, char* username) {
             break;
     }
     
-    free(username_input);
-    free(password_input);
+    return option;
 }
 
 
@@ -238,7 +241,7 @@ void showStartMenu(int* sockfd, char* buffer, int* noExit, char* username) {
  * @param username - meno prihlaseneho uzivatela
  */
 void showMenuAuthenticated(int* sockfd, char* buffer, int* noExit, char* username) {
-    printf("\n### Chat app ###\n\n");
+    printf("\n\n\n### Chat app ###\n\n");
     printf("You are logged as %s\n", username);
     printf("Menu:\n");
     printf("1. Send message\n");

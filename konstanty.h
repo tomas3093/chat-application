@@ -33,6 +33,7 @@ const int SOCK_REQ_LOGOUT = 4;              // Poziadavka na odhlasenie uzivatel
 // ...
 
 // Spravy odosielane serverom (odpoved - response)
+const int SOCK_RES_ERROR = 200;             // Vseobecny chybovy stav
 const int SOCK_RES_CONNECT = 100;           // Uspesne pripojenie
 const int SOCK_RES_DISCONNECT = 101;        // Uspesne odpojenie
 const int SOCK_RES_REGISTER_OK = 102;       // Uspesna registracia

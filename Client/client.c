@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
     char buffer[SOCK_BUFFER_LENGTH];    
     
     // Meno aktualne prihlaseneho usera (nastavi sa po prihlaseni)
-    char username[USER_USERNAME_MAX_LENGTH];  
+    char* username = malloc(sizeof(char) * USER_USERNAME_MAX_LENGTH);
     
     // Priznak ci sa ma pokracovat v obsluhe (ukoncenie nekonecneho cyklu)
     int looping;
@@ -66,8 +66,6 @@ int main(int argc, char *argv[])
         return 4;
     }
 
-
-    // TODO
     // Poziadavka o pripojenie sa na server
     if (connectToServer(&sockfd, buffer) > 0) {
         // ak zlyhala
@@ -76,34 +74,33 @@ int main(int argc, char *argv[])
         return 5;
     }
     printf("%s\n", buffer); // Vypisanie odpovede servera
-    showStartMenu(&sockfd, buffer, &looping, username);    // Zobrazenie menu s moznostami prihlasit sa alebo registrovat
+    
+    // Poziadavka na registraciu alebo prihlasenie
+    while (strlen(username) < USER_USERNAME_MIN_LENGTH) {
+        
+        // Zobrazenie menu s moznostami prihlasit sa alebo registrovat
+        int value = showStartMenu(&sockfd, buffer, &looping, username);
+        
+        // Ak uzivatel chce ukoncit aplikaciu
+        if (value >= 3) {
+            looping = 0;
+            break;
+        }
 
-    // TODO Pokracovat iba ak je username vyplneny
+    }
+
+    // Pokracovat do hlavneho cyklu sa bude iba ak je username vyplneny
     
     // Hlavny cyklus s komunikaciou medzi serverom a prihlasenym klientom
-    while (looping == 1) {
+    while ( looping == 1 && 
+            strlen(username) >= USER_USERNAME_MIN_LENGTH) {
 
         // Menu pre prihlaseneho uzivatela
         showMenuAuthenticated(&sockfd, buffer, &looping, username);
-
-        /*
-        // Vyzveme používateľa aby zadal text správy pre server.
-        printf("Please enter a message: ");
-
-        // Načítame správu od používateľa zo štandardného vstupu do buffra.
-        bzero(buffer,256);
-        fgets(buffer, 255, stdin);
-
-        // Pošleme správu cez socket servru.
-        n = write(sockfd, buffer, strlen(buffer));
-        if (n < 0)
-        {
-            perror("Error writing to socket");
-            return 5;
-        }*/
     }
 
-    close(sockfd);
+    free(username);
+    //close(sockfd);
 
     return 0;
 }
