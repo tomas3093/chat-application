@@ -69,15 +69,6 @@ int main(int argc, char *argv[])
     puts("Socket connected\n");
 
     
-    // Poziadavka o pripojenie sa na server
-    if (connectToServer(&sockfd, buffer) > 0) {
-        // ak zlyhala
-        printf("Error during connection to server\n");
-        close(sockfd);
-        return 5;
-    }
-    printf("%s\n", buffer); // Vypisanie odpovede servera
-    
     // Poziadavka na registraciu alebo prihlasenie
     while (strlen(username) < USER_USERNAME_MIN_LENGTH) {
         

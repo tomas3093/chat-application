@@ -11,8 +11,6 @@
 const int SOCK_BUFFER_LENGTH = 256;         // Dlzka buffera ktory sa posiela socketmi
 const char SOCK_SPECIAL_SYMBOL = '~';       // Specialny znak, ktorym sprava zacina a oddeluje kod spravy a telo spravy
 const int SOCK_MESSAGE_CODE_MAX_LENGTH = 3; // Maximalna dlzka ciselneho kodu spravy
-// Dlzka samotnej spravy (messageText) ktory sa posiela socketmi
-//const int SOCK_MESSAGE_LENGTH = SOCK_BUFFER_LENGTH - SOCK_MESSAGE_CODE_MAX_LENGTH - 3;
 const int SOCK_MESSAGE_LENGTH = 250;
 const int CLIENT_INITIAL_COUNT = 255;       // Pocet klientov, ktory je mozne obsluzit
 const int CLIENT_MAX_ACCOUNT_COUNT = 255;   // Maximalny pocet uzivatelskych uctov, ktore sa mozu zaregistrovat
@@ -30,16 +28,16 @@ const int SOCK_REQ_DISCONNECT = 1;          // Oznamenie o odpojeni klienta
 const int SOCK_REQ_REGISTER = 2;            // Poziadavka na registraciu noveho uzivatela
 const int SOCK_REQ_LOGIN = 3;               // Poziadavka na prihlasenie uzivatela
 const int SOCK_REQ_LOGOUT = 4;              // Poziadavka na odhlasenie uzivatela
+const int SOCK_REQ_ADD_CONTACT = 5;         // Poziadavka na pridanie ineho uzivatela medzi kontakty
+const int SOCK_REQ_DELETE_CONTACT = 6;      // Poziadavka na odobratie uzivatela z kontaktov
+const int SOCK_REQ_GET_CONTACTS = 7;        // Poziadavka na zobrazenie kontaktov prihlaseneho uzivatela
 
 // ...
 
 // Spravy odosielane serverom (odpoved - response)
-const int SOCK_RES_ERROR = 200;             // Vseobecny chybovy stav
-const int SOCK_RES_OK = 201;                // Vseobecny stav uspechu
-const int SOCK_RES_FAIL = 202;              // Vseobecny stav neuspechu
-
-const int SOCK_RES_CONNECT = 100;           // Uspesne pripojenie
-const int SOCK_RES_DISCONNECT = 101;        // Uspesne odpojenie
+const int SOCK_RES_ERROR = 100;             // Vseobecny chybovy stav
+const int SOCK_RES_OK = 101;                // Vseobecny stav uspechu
+const int SOCK_RES_FAIL = 102;              // Vseobecny stav neuspechu
 
 // ...
 
