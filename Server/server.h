@@ -9,44 +9,6 @@
 
 
 /**
- * Obsluha poziadavky pre pripojenie klienta
- * @param p - data
- * @param buffer - buffer pre spravu klientovi
- */
-void clientConnectHandler(CLIENT_SOCKET* p, char* buffer) {
-
-    // Pošleme odpoveď klientovi.
-    addMessageCode(buffer, SOCK_REQ_CONNECT);
-    strcat(buffer, "Server prijal ziadost o connect.");
-    
-    int n = write(*(p->client_sock), buffer, strlen(buffer) + 1);
-    if (n < 0)
-    {
-        perror("Error writing to socket");
-    }
-}
-
-
-/**
- * Obsluha poziadavky pre odpojenie klienta
- * @param p - data
- * @param buffer - buffer pre spravu klientovi
- */
-void clientDisconnectHandler(CLIENT_SOCKET* p, char* buffer) {
-    
-    // Pošleme odpoveď klientovi.
-    addMessageCode(buffer, SOCK_RES_DISCONNECT);
-    strcat(buffer, "Server prijal ziadost o disconnect.\n\nDovidenia.");
-    
-    int n = write(*(p->client_sock), buffer, strlen(buffer) + 1);
-    if (n < 0)
-    {
-        perror("Error writing to socket");
-    }
-}
-
-
-/**
  * Obsluha poziadavky pre registraciu noveho klienta
  * @param p - data
  * @param buffer - buffer pre spravu klientovi
@@ -101,7 +63,7 @@ void clientRegisterHandler(CLIENT_SOCKET* p, char* buffer, ACCOUNT_CREDENTIALS* 
 
     // Odpoved klientovi
     const int messageCode = registration_successful == 1 ? 
-        SOCK_RES_REGISTER_OK : SOCK_RES_REGISTER_FAIL;
+        SOCK_RES_OK : SOCK_RES_FAIL;
     
     addMessageCode(buffer, messageCode);
     strcat(buffer, messageText);
@@ -164,7 +126,7 @@ void clientLoginHandler(CLIENT_SOCKET* p, char* buffer, ACCOUNT_CREDENTIALS* cre
 
     // Odpoved klientovi    
     const int messageCode = login_successful == 1 ? 
-        SOCK_RES_LOGIN_OK : SOCK_RES_LOGIN_FAIL;
+        SOCK_RES_OK : SOCK_RES_FAIL;
     
     addMessageCode(buffer, messageCode);
     strcat(buffer, messageText);
@@ -176,6 +138,12 @@ void clientLoginHandler(CLIENT_SOCKET* p, char* buffer, ACCOUNT_CREDENTIALS* cre
     }
 }
 
+
+void clientAddNewContactHandler(CLIENT_SOCKET* p, char* buffer, char* clientUsername, char* contactUsername) {
+    
+}
+
+
 /**
  * Obsluha daneho klienta v jeho vlakne
  * @return 
@@ -184,8 +152,11 @@ void* clientHandler(void* args) {
     
     CLIENT_SOCKET* p = (CLIENT_SOCKET*)args;
     
+    // Meno aktualne prihlaseneho uzivatela
+    char* username = malloc(sizeof(char) * USER_USERNAME_MAX_LENGTH);
+    
     char buffer[SOCK_BUFFER_LENGTH];   // buffer pre spravy odosielane medzi serverom a klientom
-    int read_size;
+    int read_size;  // Dlzka precitanej spravy z buffera
     
     // Hlavny cyklus s komunikaciou medzi serverom a klientom
     // Načítame správu od klienta cez socket do buffra.
@@ -195,12 +166,7 @@ void* clientHandler(void* args) {
         // Zistenie typu spravy a zavolanie danej obsluhy
         int messageCode = getMessageCode(buffer);
 
-        if (messageCode == SOCK_REQ_CONNECT) {
-            clientConnectHandler(p, buffer);
-        } else if (messageCode == SOCK_REQ_DISCONNECT) {
-            clientDisconnectHandler(p, buffer);
-            break;  // koniec
-        } else if (messageCode == SOCK_REQ_REGISTER) {
+        if (messageCode == SOCK_REQ_REGISTER) {
             ACCOUNT_CREDENTIALS* credentials = getCredentialsFromBuffer(buffer);
             clientRegisterHandler(p, buffer, credentials);
         } else if (messageCode == SOCK_REQ_LOGIN) {
@@ -210,7 +176,7 @@ void* clientHandler(void* args) {
         } else if (messageCode == SOCK_REQ_LOGOUT) {
             // TODO
         } else {
-            // Do nothing
+            puts("Error: Unknown request");
         }
         
         // Vymazanie buffra
@@ -224,6 +190,7 @@ void* clientHandler(void* args) {
         perror("Receive failed");
     }         
     
+    free(username);
     free(p->client_sock);
     free(p);
       

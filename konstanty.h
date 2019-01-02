@@ -16,6 +16,7 @@ const int SOCK_MESSAGE_CODE_MAX_LENGTH = 3; // Maximalna dlzka ciselneho kodu sp
 const int SOCK_MESSAGE_LENGTH = 250;
 const int CLIENT_INITIAL_COUNT = 255;       // Pocet klientov, ktory je mozne obsluzit
 const int CLIENT_MAX_ACCOUNT_COUNT = 255;   // Maximalny pocet uzivatelskych uctov, ktore sa mozu zaregistrovat
+const int CLIENT_MAX_CONTACTS_COUNT = 20;   // Maximalny pocet kontaktov, ktore moze mat 1 uzivatel
 const int USER_USERNAME_MIN_LENGTH = 3;     // Minimalna dlzka uzivatelskeho mena
 const int USER_USERNAME_MAX_LENGTH = 30;    // Maximalna dlzka uzivatelskeho mena
 const int USER_PASSWORD_MIN_LENGTH = 6;     // Minimalna dlzka uzivatelskeho hesla
@@ -34,17 +35,16 @@ const int SOCK_REQ_LOGOUT = 4;              // Poziadavka na odhlasenie uzivatel
 
 // Spravy odosielane serverom (odpoved - response)
 const int SOCK_RES_ERROR = 200;             // Vseobecny chybovy stav
+const int SOCK_RES_OK = 201;                // Vseobecny stav uspechu
+const int SOCK_RES_FAIL = 202;              // Vseobecny stav neuspechu
+
 const int SOCK_RES_CONNECT = 100;           // Uspesne pripojenie
 const int SOCK_RES_DISCONNECT = 101;        // Uspesne odpojenie
-const int SOCK_RES_REGISTER_OK = 102;       // Uspesna registracia
-const int SOCK_RES_REGISTER_FAIL = 103;     // Neuspesna registracia
-const int SOCK_RES_LOGIN_OK = 104;          // Uspesne prihlasenie
-const int SOCK_RES_LOGIN_FAIL = 105;        // Neuspesne prihlasenie
 
 // ...
 
 
-// Struktury
+// DATOVE STRUKTURY
 
 /**
  * Prihlasovacie alebo registracne udaje konta uzivatela
@@ -63,15 +63,26 @@ typedef struct {
     int active;     // priznak 0/1
 } USER_ACCOUNT;
 
+
+/**
+ * Kontakty uzivatela
+ */
+typedef struct {
+    USER_ACCOUNT** contacts;            // Pole kontaktov
+} USER_CONTACTS;
+
+
 /**
  * Klientsky socket
  */
 typedef struct {
     int* client_sock;                   // Socket pripojeneho klienta
+    
     USER_ACCOUNT** accounts;            // Pole vsetkych zaregistrovanych uzivatelskych kont
     int* accounts_count;                // Pocet platnych prvkov (kont)
     pthread_mutex_t* accounts_mutex;    // mutex pre pristup k accounts
     
+    USER_CONTACTS** contacts;           // Pole uzivatelskych kontaktov
 } CLIENT_SOCKET;
 
 
