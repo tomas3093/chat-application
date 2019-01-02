@@ -58,6 +58,7 @@ int main(int argc, char *argv[])
         perror("Error creating socket");
         return 3;
     }
+    puts("Socket created");
 
     // Pripojíme sa na zadanú sieťovú adresu.
     if(connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0)
@@ -65,7 +66,9 @@ int main(int argc, char *argv[])
         perror("Error connecting to socket");
         return 4;
     }
+    puts("Socket connected\n");
 
+    
     // Poziadavka o pripojenie sa na server
     if (connectToServer(&sockfd, buffer) > 0) {
         // ak zlyhala
@@ -100,7 +103,7 @@ int main(int argc, char *argv[])
     }
 
     free(username);
-    //close(sockfd);
+    close(sockfd);
 
     return 0;
 }

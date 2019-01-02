@@ -9,15 +9,15 @@ Chat app
 #### Client - spravy odosielane na server:
   * prihlasovacie udaje (prihlasenie)
   * prihlasovacie udaje (registracia)
-  * text spravy inemu uzivatelovi
   * poziadavka na zacatie chatu s konkretnym uzivatelom
+  * text spravy inemu uzivatelovi
   * poziadavka na zobrazenie vsetkych registrovanych uzivatelov
   * poziadavka na zobrazenie kontaktov
   * poziadavka na odstranenie kontaktu
 
 #### Server - spravy odosielane klientovi:
-  * odpoved na prihlasenie (OK/ NO OK)
-  * odpoved na registraciu (ci je unikatny login)
+  * odpoved na prihlasenie (OK / FAIL)
+  * odpoved na registraciu (OK / FAIL)
   * upozornenie uzivatela ze si ho iny chce pridat do kontaktov
   * upozornenie pouzivatela ze si ho iny odstranil z kontaktov a odstranenie toho uzivatela aj z jeho kontaktov
 
@@ -52,12 +52,11 @@ Chat app
     * ...
 
 #### Data na serveri
-    * int sockfd - socket servera
-    * int client_sockets[CLIENT_INITIAL_COUNT] - pole vsetkych klientskych soketov
-    * pthread_t client_threads[CLIENT_INITIAL_COUNT] - pole vsetkych klientskych vlakien
-    * USER_ACCOUNT accounts[CLIENT_MAX_ACCOUNT_COUNT] - pole vsetkych zaregistrovanych kont
+    * int sockfd - socket servera (file descriptor)
+    * USER_ACCOUNT* accounts[CLIENT_MAX_ACCOUNT_COUNT] - pole vsetkych zaregistrovanych kont
 
 #### Data u klienta
+    * username - meno prihlaseneho uzivatela
     * ...
 
 
