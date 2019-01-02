@@ -70,22 +70,23 @@ void clientRegisterHandler(CLIENT_SOCKET* p, char* buffer, ACCOUNT_CREDENTIALS* 
         // Kontrola ci je zadane meno unikatne
         int isUnique = 1;
         pthread_mutex_lock(p->accounts_mutex);
-        for(int i = 0; i < p->accounts_count; i++) {
-            if (strcmp(p->accounts[i].credentials->username, credentials->username) == 0) {
+        for(int i = 0; i < *p->accounts_count; i++) {
+            if (strcmp(p->accounts[i]->credentials->username, credentials->username) == 0) {
                 isUnique = 0;
                 break;
             }
         }
         
         // Je unikatne a je volne miesto
-        if (isUnique == 1 && p->accounts_count < CLIENT_MAX_ACCOUNT_COUNT) {
+        if (isUnique == 1 && *p->accounts_count < CLIENT_MAX_ACCOUNT_COUNT) {
             
             // Registracia
-            p->accounts[p->accounts_count] = *account;
-            p->accounts_count++;
+            p->accounts[*p->accounts_count] = account;
+            (*p->accounts_count)++;
             registration_successful = 1;
             messageText = "Registracia bola uspesna.";
         } else {
+            free(account->credentials);
             free(account);
             registration_successful = 0;
             messageText = "Registracia zlyhala. Nie je dostatocna velkost pamate.";
@@ -93,6 +94,7 @@ void clientRegisterHandler(CLIENT_SOCKET* p, char* buffer, ACCOUNT_CREDENTIALS* 
         pthread_mutex_unlock(p->accounts_mutex);
         
     } else {
+        free(credentials);
         registration_successful = 0;
         messageText = "Registracia zlyhala. Meno alebo heslo nema spravnu dlzku.";
     }
@@ -128,12 +130,12 @@ void clientLoginHandler(CLIENT_SOCKET* p, char* buffer, ACCOUNT_CREDENTIALS* cre
             strlen(credentials->password) >= USER_PASSWORD_MIN_LENGTH &&
             strlen(credentials->password) <= USER_PASSWORD_MAX_LENGTH) {
         
-        // Kontrola ci je zadane meno registrovane a je spravne heslo
+        // Kontrola ci je zadane meno registrovane, je spravne heslo a aktivny ucet
         int isValid = 0;
         pthread_mutex_lock(p->accounts_mutex);
-        for(int i = 0; i < p->accounts_count; i++) {
-            if (strcmp(p->accounts[i].credentials->username, credentials->username) == 0) {
-                if (strcmp(p->accounts[i].credentials->password, credentials->password) == 0) {
+        for(int i = 0; i < *p->accounts_count; i++) {
+            if (strcmp(p->accounts[i]->credentials->username, credentials->username) == 0 && p->accounts[i]->active == 1) {
+                if (strcmp(p->accounts[i]->credentials->password, credentials->password) == 0) {
                     isValid = 1;
                     break;
                 } else {
@@ -204,6 +206,7 @@ void* clientHandler(void* args) {
         } else if (messageCode == SOCK_REQ_LOGIN) {
             ACCOUNT_CREDENTIALS* credentials = getCredentialsFromBuffer(buffer);
             clientLoginHandler(p, buffer, credentials);
+            free(credentials);
         } else if (messageCode == SOCK_REQ_LOGOUT) {
             // TODO
         } else {

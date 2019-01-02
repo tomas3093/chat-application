@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
     socklen_t cli_len;
     struct sockaddr_in serv_addr, cli_addr;
     
-    USER_ACCOUNT accounts[CLIENT_MAX_ACCOUNT_COUNT];
+    USER_ACCOUNT* accounts[CLIENT_MAX_ACCOUNT_COUNT];
     int accounts_count = 0;                             // najvyssi platny index v poli accounts
     pthread_mutex_t accounts_mutex;
     pthread_mutex_init(&accounts_mutex, NULL);
@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
         CLIENT_SOCKET* sockData = malloc(sizeof(CLIENT_SOCKET));
         sockData->client_sock = new_sock;
         sockData->accounts = accounts;
-        sockData->accounts_count = accounts_count;
+        sockData->accounts_count = &accounts_count;
         sockData->accounts_mutex = &accounts_mutex;
         
         if (pthread_create(&sniffer_thread, NULL, clientHandler, sockData) < 0) {
