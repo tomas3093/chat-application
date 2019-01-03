@@ -24,11 +24,11 @@ void clientRegisterHandler(CLIENT_SOCKET* p, char* buffer, ACCOUNT_CREDENTIALS* 
             strlen(credentials->password) >= USER_PASSWORD_MIN_LENGTH &&
             strlen(credentials->password) <= USER_PASSWORD_MAX_LENGTH) {
 
-        // Vytvorenie struktury
+        // Vytvorenie konta uzivatela
         USER_ACCOUNT* account = malloc(sizeof(USER_ACCOUNT));
         account->credentials = credentials;
         account->active = 1;
-        
+                
         // Kontrola ci je zadane meno unikatne
         int isUnique = 1;
         pthread_mutex_lock(p->accounts_mutex);
@@ -42,9 +42,15 @@ void clientRegisterHandler(CLIENT_SOCKET* p, char* buffer, ACCOUNT_CREDENTIALS* 
         // Je unikatne a je volne miesto
         if (isUnique == 1 && *p->accounts_count < CLIENT_MAX_ACCOUNT_COUNT) {
             
-            // Registracia
+            // Vytvorenie kontaktov uzivatela a registracia
+            USER_CONTACTS* user_contacts = malloc(sizeof(USER_CONTACTS));
+            user_contacts->contacts = malloc(sizeof(USER_ACCOUNT) * CLIENT_MAX_CONTACTS_COUNT);
+            user_contacts->contacts_count = malloc(sizeof(int));
+        
             p->accounts[*p->accounts_count] = account;
+            p->contacts[*p->accounts_count] = user_contacts;
             (*p->accounts_count)++;
+            
             registration_successful = 1;
             messageText = "Registracia bola uspesna.";
         } else {
@@ -139,8 +145,243 @@ void clientLoginHandler(CLIENT_SOCKET* p, char* buffer, ACCOUNT_CREDENTIALS* cre
 }
 
 
-void clientAddNewContactHandler(CLIENT_SOCKET* p, char* buffer, char* clientUsername, char* contactUsername) {
+/**
+ * Obsluha poziadavky pre ziskanie vsetkych kontaktov daneho uzivatela
+ * @param p - data
+ * @param buffer - buffer pre spravu klientovi
+ * @param clientUsername - meno uzivatela
+ */
+void clientGetContactsHandler(CLIENT_SOCKET* p, char* buffer, char* clientUsername) {
+    char* messageText = malloc(sizeof(char) * SOCK_MESSAGE_LENGTH);     // odpoved
     
+    USER_CONTACTS* c;
+    
+    // Kontrola ci je zadane meno registrovane a aktivny ucet
+    int isValid = 0;
+    int i;
+    pthread_mutex_lock(p->accounts_mutex);
+    for(i = 0; i < *p->accounts_count; i++) {
+        if (strcmp(p->accounts[i]->credentials->username, clientUsername) == 0 && p->accounts[i]->active == 1) {
+            isValid = 1;
+            break;
+        }
+    }
+    
+    if (isValid == 1) {
+        c = p->contacts[i];        
+    } 
+    pthread_mutex_unlock(p->accounts_mutex);
+    
+    // Odpoved klientovi    
+    int messageCode;
+    
+    if (isValid == 1) {
+        // Vytvorenie spravy s jednotlivymi kontaktmi
+        for (int j = 0; j < *c->contacts_count; j++) {
+            strcat(messageText, (*c->contacts[j]).credentials->username);
+            if (j + 1 < *c->contacts_count) {
+                strcat(messageText, &SOCK_SPECIAL_SYMBOL);
+            }
+        }
+        
+        messageCode = SOCK_RES_OK;
+    } else {
+        // Neuspech
+        messageCode = SOCK_RES_FAIL;
+    }
+
+    addMessageCode(buffer, messageCode);
+    strcat(buffer, messageText);
+    
+    int n = write(*(p->client_sock), buffer, strlen(buffer) + 1);
+    if (n < 0)
+    {
+        perror("Error writing to socket");
+    }
+    
+    free(messageText);
+}
+
+
+/**
+ * Funkcia prida prvemu uzivatelovi medzi kontakty druheho uzivatela a naopak
+ * @param p - data
+ * @param currentUser - prvy uzivatel
+ * @param userToAdd - druhy uzivatel
+ * @return - stav s akym vykonavanie skoncilo
+ */
+int addNewContact(CLIENT_SOCKET* p, char* currentUser, char* userToAdd) {
+    USER_CONTACTS* currentUserContacts;     // kontakty aktualneho usera
+    USER_CONTACTS* userToAddContacts;       // kontakty pridavaneho usera
+    
+    // Aktualny uzivatel
+    // Kontrola ci je meno aktualneho uzivatela registrovane a ma aktivny ucet
+    int isValid = 0;
+    int currentUserIndex;  // index konta aktualneho uzivatela
+    pthread_mutex_lock(p->accounts_mutex);
+    for(currentUserIndex = 0; currentUserIndex < *p->accounts_count; currentUserIndex++) {
+        if (strcmp(p->accounts[currentUserIndex]->credentials->username, currentUser) == 0 && p->accounts[currentUserIndex]->active == 1) {
+            isValid = 1;
+            break;
+        }
+    }
+    
+    if (isValid == 1) {
+        currentUserContacts = p->contacts[currentUserIndex];        
+    } else {
+        return SOCK_RES_FAIL;
+    }
+    
+    
+    // Pridavany uzivatel 
+    // Kontrola ci je meno pridavaneho uzivatela registrovane a ma aktivny ucet
+    isValid = 0;
+    int userToAddIndex;  // index konta pridavaneho uzivatela
+    for(userToAddIndex = 0; userToAddIndex < *p->accounts_count; userToAddIndex++) {
+        if (strcmp(p->accounts[userToAddIndex]->credentials->username, userToAdd) == 0 && p->accounts[userToAddIndex]->active == 1) {
+            isValid = 1;
+            break;
+        }
+    }
+    
+    if (isValid == 1) {
+        userToAddContacts = p->contacts[userToAddIndex];        
+    } else {
+        return SOCK_RES_FAIL;
+    }
+    pthread_mutex_unlock(p->accounts_mutex);
+    
+    
+    // Ci uzivatelia maju este volne miesto na dalsi kontakt
+    if (*currentUserContacts->contacts_count < CLIENT_MAX_CONTACTS_COUNT && 
+            *userToAddContacts->contacts_count < CLIENT_MAX_CONTACTS_COUNT) {
+        
+        // Zistenie ci tento kontakt uzivatelia este nemaju
+        for (int i = 0; i < *currentUserContacts->contacts_count; i++) {
+            if (strcmp((*currentUserContacts->contacts[i]).credentials->username, userToAdd) == 0) {
+                return SOCK_RES_FAIL;
+            }
+        }
+        
+        for (int i = 0; i < *userToAddContacts->contacts_count; i++) {
+            if (strcmp((*userToAddContacts->contacts[i]).credentials->username, currentUser) == 0) {
+                return SOCK_RES_FAIL;
+            }
+        }
+        
+        // Pridanie medzi kontakty
+        *currentUserContacts->contacts[*currentUserContacts->contacts_count] = *p->accounts[userToAddIndex];
+        *userToAddContacts->contacts[*userToAddContacts->contacts_count] = *p->accounts[currentUserIndex];
+        *currentUserContacts->contacts_count++;
+        *userToAddContacts->contacts_count++;
+        
+        return SOCK_RES_OK;
+    }
+    
+    return SOCK_RES_FAIL;
+}
+
+
+/**
+ * Obsluha poziadavky pre pridanie noveho kontaktu
+ * @param p - data
+ * @param buffer - buffer pre spravu klientovi
+ * @param currentUser - meno aktualne prihlaseneho uzivatela
+ * @param userToAdd - meno uzivatela, ktoreho chceme pridat medzi kontakty
+ */
+void clientAddNewContactHandler(CLIENT_SOCKET* p, char* buffer, char* currentUser, char* userToAdd) {
+    int messageCode = addNewContact(p, currentUser, userToAdd);
+    addMessageCode(buffer, messageCode);
+    
+    int n = write(*(p->client_sock), buffer, strlen(buffer) + 1);
+    if (n < 0)
+    {
+        perror("Error writing to socket");
+    }
+}
+
+
+/**
+ * Funkcia odstrani prvemu uzivatelovi z kontaktov druheho uzivatela a naopak
+ * @param p - data
+ * @param currentUser - prvy uzivatel
+ * @param userToDelete - druhy uzivatel
+ * @return - stav s akym vykonavanie skoncilo
+ */
+int deleteContact(CLIENT_SOCKET* p, char* currentUser, char* userToDelete) {
+    USER_CONTACTS* currentUserContacts;     // kontakty aktualneho usera
+    USER_CONTACTS* userToDeleteContacts;    // kontakty odoberaneho usera
+    
+    // Aktualny uzivatel
+    // Kontrola ci je meno aktualneho uzivatela registrovane a ma aktivny ucet
+    int isValid = 0;
+    int currentUserIndex;  // index konta aktualneho uzivatela
+    pthread_mutex_lock(p->accounts_mutex);
+    for(currentUserIndex = 0; currentUserIndex < *p->accounts_count; currentUserIndex++) {
+        if (strcmp(p->accounts[currentUserIndex]->credentials->username, currentUser) == 0 && p->accounts[currentUserIndex]->active == 1) {
+            isValid = 1;
+            break;
+        }
+    }
+    
+    if (isValid == 1) {
+        currentUserContacts = p->contacts[currentUserIndex];        
+    } else {
+        return SOCK_RES_FAIL;
+    }
+    
+    
+    // Odoberany uzivatel 
+    // Kontrola ci je meno odoberaneho uzivatela registrovane
+    isValid = 0;
+    int userToDeleteIndex;  // index konta odoberaneho uzivatela
+    for(userToDeleteIndex = 0; userToDeleteIndex < *p->accounts_count; userToDeleteIndex++) {
+        if (strcmp(p->accounts[userToDeleteIndex]->credentials->username, userToDelete) == 0) {
+            isValid = 1;
+            break;
+        }
+    }
+    
+    if (isValid == 1) {
+        userToDeleteContacts = p->contacts[userToDeleteIndex];        
+    } else {
+        return SOCK_RES_FAIL;
+    }
+    pthread_mutex_unlock(p->accounts_mutex);
+    
+    
+    // Odobratie z kontaktov (posunutie pamate)
+    memmove(currentUserContacts->contacts[currentUserIndex],
+            currentUserContacts->contacts[currentUserIndex] + 1,
+            *currentUserContacts->contacts_count - currentUserIndex);
+    
+    memmove(userToDeleteContacts->contacts[userToDeleteIndex],
+            userToDeleteContacts->contacts[userToDeleteIndex] + 1,
+            *userToDeleteContacts->contacts_count - userToDeleteIndex);
+    
+    *currentUserContacts->contacts_count--;
+    *userToDeleteContacts->contacts_count--;
+    
+    return SOCK_RES_OK;
+}
+
+
+/**
+ * Obsluha poziadavky pre odstranenie kontaktu
+ * @param p - data
+ * @param buffer - buffer pre spravu klientovi
+ * @param currentUser - meno aktualne prihlaseneho uzivatela
+ * @param userToDelete - meno uzivatela, ktoreho chceme odstranit z kontaktov
+ */
+void clientDeleteContactHandler(CLIENT_SOCKET* p, char* buffer, char* currentUser, char* userToDelete) {
+    int messageCode = deleteContact(p, currentUser, userToDelete);
+    addMessageCode(buffer, messageCode);
+    
+    int n = write(*(p->client_sock), buffer, strlen(buffer) + 1);
+    if (n < 0)
+    {
+        perror("Error writing to socket");
+    }
 }
 
 
@@ -171,8 +412,17 @@ void* clientHandler(void* args) {
             clientRegisterHandler(p, buffer, credentials);
         } else if (messageCode == SOCK_REQ_LOGIN) {
             ACCOUNT_CREDENTIALS* credentials = getCredentialsFromBuffer(buffer);
+            username = credentials->username;
             clientLoginHandler(p, buffer, credentials);
             free(credentials);
+        } else if (messageCode == SOCK_REQ_ADD_CONTACT) {
+            char* userToAdd = getSecondBufferArgument(buffer);
+            clientAddNewContactHandler(p, buffer, username, userToAdd);
+        } else if (messageCode == SOCK_REQ_DELETE_CONTACT) {
+            char* userToDelete = getSecondBufferArgument(buffer);
+            clientDeleteContactHandler(p, buffer, username, userToDelete);
+        } else if (messageCode == SOCK_REQ_GET_CONTACTS) {
+            clientGetContactsHandler(p, buffer, username);
         } else if (messageCode == SOCK_REQ_LOGOUT) {
             // TODO
         } else {

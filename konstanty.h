@@ -67,6 +67,7 @@ typedef struct {
  */
 typedef struct {
     USER_ACCOUNT** contacts;            // Pole kontaktov
+    int* contacts_count;                // Pocet platnych prvkov (kontaktov)
 } USER_CONTACTS;
 
 

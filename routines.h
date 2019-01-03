@@ -69,7 +69,7 @@ int addMessageCode(char* buffer, const int messageCode)
 
 
 /**
- * Rozparsuje buffer, ktori obsahuje prihlasovacie udaje
+ * Rozparsuje buffer, ktori obsahuje prihlasovacie udaje (prvy a druhy argument)
  * @return 
  */
 ACCOUNT_CREDENTIALS* getCredentialsFromBuffer(char* buffer) {
@@ -101,6 +101,38 @@ ACCOUNT_CREDENTIALS* getCredentialsFromBuffer(char* buffer) {
     memcpy(credentials->password, buffer + (second + 1), strlen(buffer) - second - 1);
     
     return credentials;
+}
+
+
+/**
+ * Vrati druhy argument z buffera (argument za prvym specialnym symbolom)
+ * @param buffer
+ * @return 
+ */
+char* getSecondBufferArgument(char* buffer) {
+    char* arg = malloc(sizeof(char) * USER_USERNAME_MAX_LENGTH);
+    
+    int first = 0;
+    while(1) {
+        if (buffer[first] == '\0' || buffer[first] == SOCK_SPECIAL_SYMBOL) {
+            break;
+        }
+        
+        first++;
+    }
+    
+    int second = first + 1;
+    while(1) {
+        if (buffer[first] == '\0' || buffer[second] == '\0' || buffer[second] == SOCK_SPECIAL_SYMBOL) {
+            break;
+        }
+        
+        second++;
+    }
+    
+    memcpy(arg, buffer + (first + 1), second - first - 1);
+    
+    return arg;
 }
 
 
