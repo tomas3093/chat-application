@@ -25,10 +25,20 @@ Chat app
 [Kod spravy][Specialny oddelovaci znak][Telo spravy]
 
 #### Struktura sprav
-    * [SOCK_REQ_CONNECT][SOCK_SPECIAL_SYMBOL][]
-    * [SOCK_REQ_DISCONNECT][SOCK_SPECIAL_SYMBOL][]
-    * [SOCK_REQ_REGISTER][SOCK_SPECIAL_SYMBOL][(LOGIN)(SOCK_SPECIAL_SYMBOL)(PASSWORD)]
+    * [SOCK_REQ_REGISTER][SOCK_SPECIAL_SYMBOL][LOGIN][SOCK_SPECIAL_SYMBOL[]PASSWORD]
+    * [SOCK_REQ_LOGIN][SOCK_SPECIAL_SYMBOL][LOGIN][SOCK_SPECIAL_SYMBOL][PASSWORD]
+    * [SOCK_REQ_ADD_CONTACT][SOCK_SPECIAL_SYMBOL][CONTACT_USERNAME]
+    * [SOCK_REQ_DELETE_CONTACT][SOCK_SPECIAL_SYMBOL][CONTACT_USERNAME]
+    * [SOCK_REQ_GET_CONTACTS][SOCK_SPECIAL_SYMBOL]
+    * [SOCK_REQ_SEND_MESSAGE][SOCK_SPECIAL_SYMBOL][CONTACT_USERNAME][SOCK_SPECIAL_SYMBOL][MESSAGE_TEXT]
+    * [SOCK_REQ_GET_UNREAD_MESSAGES][SOCK_SPECIAL_SYMBOL][CONTACT_USERNAME]
     * ...
+
+Odpovede na requesty su vzdy iba uspech (SOCK_RES_OK) alebo neuspech (SOCK_RES_FAIL)
+
+#### Specialne pripady   
+    * response s kontaktmi uzivatela            - [SOCK_RES_OK][SOCK_SPECIAL_SYMBOL][1. CONTACT_USERNAME][SOCK_SPECIAL_SYMBOL][2. CONTACT_USERNAME][SOCK_SPECIAL_SYMBOL] ...
+    * response so spravou od ineho uzivatela    - po requeste server posiela postupne jednotlive spravy a skonci spravou s kodom SOCK_RES_FAIL
 
 ---
 ### Zodpovednosti
@@ -71,6 +81,15 @@ Chat app
   * odstrániť iného používateľa zo svojich kontaktov – odstraňovaný používateľa o tom musí byť informovaný a z jeho kontaktov musí byť automaticky odstránený používateľ, ktorý si ho odstránil,
   * poslať textovú správu inému používateľovi, ktorého má vo svojich kontaktoch (ak je tento odhlásený, musí dostať správu hneď, ako sa prihlási).
 
+
+---
+### Known bugs and TODOs
+  * dorobit zobrazenie neprecitanych sprav
+  * dorobit posielanie sprav
+  * nefunguje odstranovanie uzivatelov z kontaktov
+  * pridat vymazanie uctu uzivatela (iba sa zmeni 'active' na hodnotu 0 v USER_ACCOUNT)
+  * pridat LOGOUT
+  * ... 
 
 ---
 ### Sources

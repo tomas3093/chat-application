@@ -11,26 +11,28 @@
 const int SOCK_BUFFER_LENGTH = 256;         // Dlzka buffera ktory sa posiela socketmi
 const char SOCK_SPECIAL_SYMBOL = '~';       // Specialny znak, ktorym sprava zacina a oddeluje kod spravy a telo spravy
 const int SOCK_MESSAGE_CODE_MAX_LENGTH = 3; // Maximalna dlzka ciselneho kodu spravy
-const int SOCK_MESSAGE_LENGTH = 250;
+const int SOCK_MESSAGE_LENGTH = 250;        // Maximalna dlzka spravy v buffri (bez ciselneho kodu spravy)
 const int CLIENT_INITIAL_COUNT = 255;       // Pocet klientov, ktory je mozne obsluzit
 const int CLIENT_MAX_ACCOUNT_COUNT = 255;   // Maximalny pocet uzivatelskych uctov, ktore sa mozu zaregistrovat
 const int CLIENT_MAX_CONTACTS_COUNT = 20;   // Maximalny pocet kontaktov, ktore moze mat 1 uzivatel
+const int CLIENT_MESSAGE_LENGTH = 150;      // Maximalna dlzka textovej spravy, ktoru je mozne poslat inemu uzivatelovi
 const int USER_USERNAME_MIN_LENGTH = 3;     // Minimalna dlzka uzivatelskeho mena
 const int USER_USERNAME_MAX_LENGTH = 30;    // Maximalna dlzka uzivatelskeho mena
 const int USER_PASSWORD_MIN_LENGTH = 6;     // Minimalna dlzka uzivatelskeho hesla
 const int USER_PASSWORD_MAX_LENGTH = 255;   // Maximalna dlzka uzivatelskeho hesla
+const int SERVER_MAX_MESSAGES_COUNT = 100;  // Maximalny pocet sprav ulozenych na servery
 
 
 // SOCKETY (ciselne kody)
 // Spravy odosielane klientom (poziadavka - request)
-const int SOCK_REQ_CONNECT = 0;             // Poziadavka na pripojenie (prva sprava z klienta na server)
-const int SOCK_REQ_DISCONNECT = 1;          // Oznamenie o odpojeni klienta
 const int SOCK_REQ_REGISTER = 2;            // Poziadavka na registraciu noveho uzivatela
 const int SOCK_REQ_LOGIN = 3;               // Poziadavka na prihlasenie uzivatela
 const int SOCK_REQ_LOGOUT = 4;              // Poziadavka na odhlasenie uzivatela
 const int SOCK_REQ_ADD_CONTACT = 5;         // Poziadavka na pridanie ineho uzivatela medzi kontakty
 const int SOCK_REQ_DELETE_CONTACT = 6;      // Poziadavka na odobratie uzivatela z kontaktov
 const int SOCK_REQ_GET_CONTACTS = 7;        // Poziadavka na zobrazenie kontaktov prihlaseneho uzivatela
+const int SOCK_REQ_SEND_MESSAGE = 8;        // Poziadavka na poslanie spravy inemu uzivatelovi
+const int SOCK_REQ_GET_UNREAD_MESSAGES = 9; // Poziadavka na zobrazenie neprecitanych sprav od daneho uzivatela
 
 // ...
 
@@ -72,6 +74,16 @@ typedef struct {
 
 
 /**
+ * Sprava inemu uzivatelovi
+ */
+typedef struct {
+    char* sender;                       // Meno odosielatela
+    char* recipient;                    // Meno prijemcu
+    char* text;                         // Text spravy
+} MESSAGE;
+
+
+/**
  * Klientsky socket
  */
 typedef struct {
@@ -82,6 +94,9 @@ typedef struct {
     pthread_mutex_t* accounts_mutex;    // mutex pre pristup k accounts
     
     USER_CONTACTS** contacts;           // Pole uzivatelskych kontaktov
+    
+    MESSAGE** messages;                 // Pole nedorucenych sprav
+    int* messages_count;                // Pocet platnych prvkov (sprav)
 } CLIENT_SOCKET;
 
 

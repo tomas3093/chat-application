@@ -34,6 +34,10 @@ int main(int argc, char *argv[])
     // Kontakty jednotlivych uzivatelov; usporiadany su rovnako ako accounts, teda accounts_count plati aj tu
     USER_CONTACTS* contacts[CLIENT_MAX_CONTACTS_COUNT]; 
     
+    // Nedorucene spravy
+    MESSAGE* messages[SERVER_MAX_MESSAGES_COUNT];
+    int messages_count = 0;
+    
     // Skontrolujeme či máme dostatok argumentov.
     if (argc < 2)
     {
@@ -87,6 +91,8 @@ int main(int argc, char *argv[])
         sockData->accounts_count = &accounts_count;
         sockData->accounts_mutex = &accounts_mutex;
         sockData->contacts = contacts;
+        sockData->messages = messages;
+        sockData->messages_count = &messages_count;
         
         if (pthread_create(&sniffer_thread, NULL, clientHandler, sockData) < 0) {
             perror("Could not create thread");

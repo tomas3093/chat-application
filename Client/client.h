@@ -82,6 +82,12 @@ int loginClient(int* sockfd, char* buffer, ACCOUNT_CREDENTIALS* credentials)
 }
 
 
+/**
+ * Poziada o kontakty aktualne prihlaseneho uzivatela a vypise ich na konzolu
+ * @param sockfd - inicializovany a pripojeny socket
+ * @param buffer - premenna v ktorej sa vrati odpoved servera
+ * @return - stav s akym funkcia skoncila
+ */
 int showUserContacts(int* sockfd, char* buffer) {
     addMessageCode(buffer, SOCK_REQ_GET_CONTACTS);
 
@@ -106,8 +112,39 @@ int showUserContacts(int* sockfd, char* buffer) {
     int responseCode = getMessageCode(buffer);
     if (responseCode == SOCK_RES_OK) {
         
-        // TODO Naparsovat kontakty z buffra a vypisat ich na konzolu
-        puts("NOT IMPLEMENTED YET! - Zobrazenie kontaktov");
+        // Naparsovanie buffra a vypisanie vsetkych argumentov (kontaktov)
+        char* username = malloc(sizeof(char) * USER_USERNAME_MAX_LENGTH);
+        memset(username, 0, USER_USERNAME_MAX_LENGTH);
+
+        const int SKIP_COUNT = 1; // kolko argumentov sa ma preskocit
+        int count = 0;  // pocitadlo argumentov
+        int j = 0;
+        for (int i = 0; i <= strlen(buffer); i++) {
+            if (buffer[i] == '\0') {
+                if (count >= SKIP_COUNT && strlen(username) > 0) {
+                    printf("%d. %s\n", count - SKIP_COUNT + 1, username);
+                }
+                break;
+                
+            } else if (buffer[i] != SOCK_SPECIAL_SYMBOL && strlen(username) < USER_USERNAME_MAX_LENGTH) {
+                username[j] = buffer[i];
+                j++;
+            } else {
+                if (count >= SKIP_COUNT && strlen(username) > 0) {
+                    printf("%d. %s\n", count - SKIP_COUNT + 1, username);
+                }
+
+                memset(username, 0, USER_USERNAME_MAX_LENGTH);
+                j = 0;
+                count++;
+            }
+        }
+        
+        if (count <= SKIP_COUNT && strlen(username) == 0) {
+            printf("You have 0 contacts.\n");
+        }
+        
+        free(username);
     }
 
     
@@ -291,7 +328,7 @@ int showStartMenu(int* sockfd, char* buffer, int* noExit, char* username) {
  * @param username - meno prihlaseneho uzivatela
  */
 void showMenuAuthenticated(int* sockfd, char* buffer, int* noExit, char* username) {
-    printf("\n\n\n### Chat app ###\n\n");
+    printf("\n\n### Chat app ###\n\n");
     printf("You are logged as %s\n", username);
     printf("Menu:\n");
     printf("1. Start chat\n");
@@ -307,16 +344,21 @@ void showMenuAuthenticated(int* sockfd, char* buffer, int* noExit, char* usernam
     switch(option) {
         case 1:            
             printf("NOT IMPLEMENTED YET!\n");
+            
+            // TODO Tu sa vypyta meno kontaktu a text spravy. Odosle sa na server a ak bol req uspesny
+            // tak sa spusti nekonecny cyklus s chatom s danym uzivatelom
+            
             *noExit = 1;
             break;
             
         case 2:
-            printf("\n\n\n### Chat app ###\n\n");
-            printf("You are logged as %s\n", username);
+            printf("\n\n### Chat app ###\n\n");
+            printf("You are logged as %s\n\n", username);
             
+            printf("Your contacts:\n");
             showUserContacts(sockfd, buffer);       // Zobrazi kontakty uzivatela
             
-            printf("Menu:\n");
+            printf("\nMenu:\n");
             printf("1. Add contact\n");
             printf("2. Delete contact\n");
             printf("3. Cancel\n\n");
@@ -328,9 +370,13 @@ void showMenuAuthenticated(int* sockfd, char* buffer, int* noExit, char* usernam
                     printf("Enter username of user you want to add to your contacts:\n");
                     scanf("%s", value1);
                     
-                    addNewContact(sockfd, buffer, value1);
+                    option = addNewContact(sockfd, buffer, value1);
+                    if (option == SOCK_RES_OK) {
+                        printf("\n%s has been added to your contacts\n", value1);
+                    } else {
+                        printf("\nAdding failed!\n");
+                    }
                     
-                    printf("NOT IMPLEMENTED YET!\n");
                     *noExit = 1;
                     break;
             
@@ -338,9 +384,13 @@ void showMenuAuthenticated(int* sockfd, char* buffer, int* noExit, char* usernam
                     printf("Enter username of user you want to remove from your contacts:\n");
                     scanf("%s", value1);
                     
-                    deleteContact(sockfd, buffer, value1);
+                    option = deleteContact(sockfd, buffer, value1);
+                    if (option == SOCK_RES_OK) {
+                        printf("\n%s has been removed from your contacts\n", value1);
+                    } else {
+                        printf("\nRemoving failed!\n");
+                    }
                     
-                    printf("NOT IMPLEMENTED YET!\n");
                     *noExit = 1;
                     break;
             
@@ -348,8 +398,6 @@ void showMenuAuthenticated(int* sockfd, char* buffer, int* noExit, char* usernam
                     *noExit = 1;
                     break;
             }
-    
-            printf("NOT IMPLEMENTED YET!\n");
             *noExit = 1;
             break;
             
