@@ -44,8 +44,9 @@ void clientRegisterHandler(CLIENT_SOCKET* p, char* buffer, ACCOUNT_CREDENTIALS* 
             
             // Vytvorenie kontaktov uzivatela a registracia
             USER_CONTACTS* user_contacts = malloc(sizeof(USER_CONTACTS));
-            user_contacts->contacts = malloc(sizeof(USER_ACCOUNT) * CLIENT_MAX_CONTACTS_COUNT);
+            user_contacts->contacts = malloc(sizeof(USER_ACCOUNT*) * CLIENT_MAX_CONTACTS_COUNT);
             user_contacts->contacts_count = malloc(sizeof(int));
+            *user_contacts->contacts_count = 0;
         
             p->accounts[*p->accounts_count] = account;
             p->contacts[*p->accounts_count] = user_contacts;
@@ -270,10 +271,10 @@ int addNewContact(CLIENT_SOCKET* p, char* currentUser, char* userToAdd) {
         }
         
         // Pridanie medzi kontakty
-        *currentUserContacts->contacts[*currentUserContacts->contacts_count] = *p->accounts[userToAddIndex];
-        *userToAddContacts->contacts[*userToAddContacts->contacts_count] = *p->accounts[currentUserIndex];
-        *currentUserContacts->contacts_count++;
-        *userToAddContacts->contacts_count++;
+        currentUserContacts->contacts[*currentUserContacts->contacts_count] = p->accounts[userToAddIndex];
+        userToAddContacts->contacts[*userToAddContacts->contacts_count] = p->accounts[currentUserIndex];
+        (*currentUserContacts->contacts_count)++;
+        (*userToAddContacts->contacts_count)++;
         
         return SOCK_RES_OK;
     }
