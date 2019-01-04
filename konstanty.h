@@ -16,11 +16,12 @@ const int CLIENT_INITIAL_COUNT = 255;       // Pocet klientov, ktory je mozne ob
 const int CLIENT_MAX_ACCOUNT_COUNT = 255;   // Maximalny pocet uzivatelskych uctov, ktore sa mozu zaregistrovat
 const int CLIENT_MAX_CONTACTS_COUNT = 20;   // Maximalny pocet kontaktov, ktore moze mat 1 uzivatel
 const int CLIENT_MESSAGE_LENGTH = 150;      // Maximalna dlzka textovej spravy, ktoru je mozne poslat inemu uzivatelovi
+const int CLIENT_MAX_RECEIVED_MESSAGES_COUNT = 10;  // Maximalny pocet sprav ktore je mozne naraz poslat zo servera
 const int USER_USERNAME_MIN_LENGTH = 3;     // Minimalna dlzka uzivatelskeho mena
 const int USER_USERNAME_MAX_LENGTH = 30;    // Maximalna dlzka uzivatelskeho mena
 const int USER_PASSWORD_MIN_LENGTH = 6;     // Minimalna dlzka uzivatelskeho hesla
 const int USER_PASSWORD_MAX_LENGTH = 255;   // Maximalna dlzka uzivatelskeho hesla
-const int SERVER_MAX_MESSAGES_COUNT = 100;  // Maximalny pocet sprav ulozenych na servery
+const int SERVER_MAX_MESSAGES_COUNT = 1000; // Maximalny pocet sprav ulozenych na servery
 
 
 // SOCKETY (ciselne kody)
@@ -80,6 +81,7 @@ typedef struct {
     char* sender;                       // Meno odosielatela
     char* recipient;                    // Meno prijemcu
     char* text;                         // Text spravy
+    int* unread;                        // Priznak ci bola precitana
 } MESSAGE;
 
 
@@ -97,6 +99,7 @@ typedef struct {
     
     MESSAGE** messages;                 // Pole nedorucenych sprav
     int* messages_count;                // Pocet platnych prvkov (sprav)
+    pthread_mutex_t* messages_mutex;    // mutex pre pristup k messages
 } CLIENT_SOCKET;
 
 

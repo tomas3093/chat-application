@@ -84,7 +84,7 @@ Odpovede na requesty su vzdy iba uspech (SOCK_RES_OK) alebo neuspech (SOCK_RES_F
 
 ---
 ### Known bugs and TODOs
-  * dorobit zobrazenie neprecitanych sprav
+  * dorobit zobrazenie sprav od konkretneho uzivatela
   * dorobit posielanie sprav
   * nefunguje odstranovanie uzivatelov z kontaktov
   * pridat vymazanie uctu uzivatela (iba sa zmeni 'active' na hodnotu 0 v USER_ACCOUNT)

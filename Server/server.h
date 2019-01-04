@@ -416,27 +416,75 @@ void clientDeleteContactHandler(CLIENT_SOCKET* p, char* buffer, char* currentUse
 }
 
 
-// TODO
 /**
- * Obsluha poziadavky odoslanie spravy inemu uzivatelovi
+ * Obsluha poziadavky pre odoslanie spravy inemu uzivatelovi
  * @param p - data
  * @param buffer - buffer pre spravu klientovi
  * @param sender - meno aktualne prihlaseneho uzivatela
  * @param recipient - meno uzivatela, pre ktoreho je sprava urcena
+ * @param messageText - text samotnej spravy
+ * @return - stav s akym vykonavanie skoncilo
  */
-void clientSendMessageHandler(CLIENT_SOCKET* p, char* buffer, char* sender, char* recipient) {
-    char* messageText;      // odpoved
+int clientSendMessageHandler(CLIENT_SOCKET* p, char* buffer, char* sender, char* recipient, char* messageText) {
     
-    
-    // Tu skontrolovat ci taky prijimatel existuje, vytvorit spravu a ulozit ju do pola na serveri (asi bude treba pridat mutexy)
-    
+    // Ak je prazdna sprava
+    if (strlen(messageText) <= 0) {
+        return SOCK_RES_FAIL;
+    }
 
-    // Odpoved klientovi    
-    const int messageCode = 1 == 1 ? 
-        SOCK_RES_OK : SOCK_RES_FAIL;
+    // Odosielatel
+    // Kontrola ci je meno odosielatela registrovane a ma aktivny ucet
+    int isValid = 0;
+    int senderIndex;  // index konta odosielatela v poli accounts
+    pthread_mutex_lock(p->accounts_mutex);
+    for(senderIndex = 0; senderIndex < *p->accounts_count; senderIndex++) {
+        if (strcmp(p->accounts[senderIndex]->credentials->username, sender) == 0 && p->accounts[senderIndex]->active == 1) {
+            isValid = 1;
+            break;
+        }
+    }
     
-    addMessageCode(buffer, messageCode);
-    strcat(buffer, messageText);
+    if (isValid == 0) {
+        return SOCK_RES_FAIL;
+    } 
+    
+    
+    // Prijimatel
+    // Kontrola ci je meno prijimatela registrovane
+    isValid = 0;
+    int recipientIndex;  // index konta prijimatela v poli accounts
+    for(recipientIndex = 0; recipientIndex < *p->accounts_count; recipientIndex++) {
+        if (strcmp(p->accounts[recipientIndex]->credentials->username, recipient) == 0) {
+            isValid = 1;
+            break;
+        }
+    }
+    
+    if (isValid == 0) {
+        return SOCK_RES_FAIL;
+    }
+    pthread_mutex_unlock(p->accounts_mutex);
+    
+    
+    // Vytvorenie spravy a jej ulozenie do pola
+    MESSAGE* message = malloc(sizeof(MESSAGE));
+    message->sender = sender;
+    message->recipient = recipient;
+    message->text = messageText;
+    *message->unread = 1;
+    
+    pthread_mutex_lock(p->messages_mutex);
+    if (*p->messages_count >= SERVER_MAX_MESSAGES_COUNT) {
+        return SOCK_RES_FAIL;   // plne pole sprav
+    }
+    
+    p->messages[*p->messages_count] = message;
+    (*p->messages_count)++;
+    pthread_mutex_unlock(p->messages_mutex);
+    
+    
+    // Odpoved
+    addMessageCode(buffer, SOCK_RES_OK);
     
     int n = write(*(p->client_sock), buffer, strlen(buffer) + 1);
     if (n < 0)
@@ -446,34 +494,61 @@ void clientSendMessageHandler(CLIENT_SOCKET* p, char* buffer, char* sender, char
 }
 
 
-// TODO
 /**
  * Obsluha poziadavky pre zobrazenie neprecitanych sprav od konkretneho uzivatela
  * @param p - data
  * @param buffer - buffer pre spravu klientovi
  * @param currentUser - meno aktualne prihlaseneho uzivatela
  * @param sender - meno uzivatela, od ktoreho chceme zobrazit nove spravy
+ * @return - stav s akym vykonavanie skoncilo
  */
-void clientGetUnreadMessagesHandler(CLIENT_SOCKET* p, char* buffer, char* currentUser, char* sender) {
+int clientGetUnreadMessagesHandler(CLIENT_SOCKET* p, char* buffer, char* currentUser, char* sender) {
     char* messageText;      // odpoved
+    MESSAGE* messages[CLIENT_MAX_RECEIVED_MESSAGES_COUNT];     // spravy pre uzivatela
     
-    
-    // Tu skontrolovat ci existuju na servery spravy s danym odosielatelom a prijimatelom
-    // a postupne v cykle ich odosielat klientovi
-    
+    // Ziskanie relevantnych sprav (usporiadanych od najnovsich po najstarsie)
+    int count = 0;  // Pocet najdenych sprav
+    pthread_mutex_lock(p->messages_mutex);
+    for (int i = *p->messages_count - 1; i > 0; i--) {
+        if (count >= CLIENT_MAX_RECEIVED_MESSAGES_COUNT) {
+            break;
+        }
 
-    // Odpoved klientovi    
-    const int messageCode = 1 == 1 ? 
-        SOCK_RES_OK : SOCK_RES_FAIL;
+        if (p->messages[i]->recipient == currentUser && p->messages[i]->sender == sender) {
+            *p->messages[i]->unread = 0;
+            messages[count] = p->messages[i];
+            count++;
+        }
+    }
+    pthread_mutex_unlock(p->messages_mutex);
     
-    addMessageCode(buffer, messageCode);
-    strcat(buffer, messageText);
+    // Ak neexistuju ziadne spravy
+    if (count == 0) {
+        return SOCK_RES_FAIL;
+    }
+
+    // Odoslanie sprav cez socket
+    for (int i = 0; i < count; i++) {
+        addMessageCode(buffer, SOCK_RES_OK);
+        strcat(buffer, messages[i]->text);
+        
+        int n = write(*(p->client_sock), buffer, strlen(buffer) + 1);
+        if (n < 0)
+        {
+            perror("Error writing to socket");
+        }
+    }
+    
+    // Uz nie su ziadne spravy, tak sa posle kod FAIL
+    addMessageCode(buffer, SOCK_RES_FAIL);
     
     int n = write(*(p->client_sock), buffer, strlen(buffer) + 1);
     if (n < 0)
     {
         perror("Error writing to socket");
     }
+    
+    return SOCK_RES_OK;
 }
 
 
