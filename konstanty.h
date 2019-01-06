@@ -6,6 +6,8 @@
 #include <signal.h>
 #include <pthread.h>
 
+// Ladenie
+const int DEBUG_MODE = 1;                   // Mod pre vyvoj a ladenie
 
 // VSEOBECNE
 const int SOCK_BUFFER_LENGTH = 256;         // Dlzka buffera ktory sa posiela socketmi
@@ -14,7 +16,6 @@ const int SOCK_MESSAGE_CODE_MAX_LENGTH = 3; // Maximalna dlzka ciselneho kodu sp
 const int SOCK_MESSAGE_LENGTH = 250;        // Maximalna dlzka spravy v buffri (bez ciselneho kodu spravy)
 const int CLIENT_INITIAL_COUNT = 255;       // Pocet klientov, ktory je mozne obsluzit
 const int CLIENT_MAX_ACCOUNT_COUNT = 255;   // Maximalny pocet uzivatelskych uctov, ktore sa mozu zaregistrovat
-const int CLIENT_MAX_CONTACTS_COUNT = 20;   // Maximalny pocet kontaktov, ktore moze mat 1 uzivatel
 const int CLIENT_MESSAGE_LENGTH = 150;      // Maximalna dlzka textovej spravy, ktoru je mozne poslat inemu uzivatelovi
 const int CLIENT_MAX_RECEIVED_MESSAGES_COUNT = 10;  // Maximalny pocet sprav ktore je mozne naraz poslat zo servera
 const int USER_USERNAME_MIN_LENGTH = 3;     // Minimalna dlzka uzivatelskeho mena
@@ -33,7 +34,8 @@ const int SOCK_REQ_ADD_CONTACT = 5;         // Poziadavka na pridanie ineho uziv
 const int SOCK_REQ_DELETE_CONTACT = 6;      // Poziadavka na odobratie uzivatela z kontaktov
 const int SOCK_REQ_GET_CONTACTS = 7;        // Poziadavka na zobrazenie kontaktov prihlaseneho uzivatela
 const int SOCK_REQ_SEND_MESSAGE = 8;        // Poziadavka na poslanie spravy inemu uzivatelovi
-const int SOCK_REQ_GET_UNREAD_MESSAGES = 9; // Poziadavka na zobrazenie neprecitanych sprav od daneho uzivatela
+const int SOCK_REQ_GET_RECENT_MESSAGES = 9; // Poziadavka na zobrazenie neprecitanych sprav od daneho uzivatela
+const int SOCK_REQ_DELETE_ACCOUNT = 10;     // Poziadavka na vymazanie konta uzivatela
 
 // ...
 
@@ -61,17 +63,9 @@ typedef struct {
  */
 typedef struct {
     ACCOUNT_CREDENTIALS* credentials;
-    int active;     // priznak 0/1
+    int** contacts;    // Pole rovnakej dlzky ako je mozny pocet registrovanych uzivatelov s cislami 1 a 0 (je kontakt / nie je kontakt) 
+    int* active;    // priznak 0/1
 } USER_ACCOUNT;
-
-
-/**
- * Kontakty uzivatela
- */
-typedef struct {
-    USER_ACCOUNT** contacts;            // Pole kontaktov
-    int* contacts_count;                // Pocet platnych prvkov (kontaktov)
-} USER_CONTACTS;
 
 
 /**
@@ -94,8 +88,6 @@ typedef struct {
     USER_ACCOUNT** accounts;            // Pole vsetkych zaregistrovanych uzivatelskych kont
     int* accounts_count;                // Pocet platnych prvkov (kont)
     pthread_mutex_t* accounts_mutex;    // mutex pre pristup k accounts
-    
-    USER_CONTACTS** contacts;           // Pole uzivatelskych kontaktov
     
     MESSAGE** messages;                 // Pole nedorucenych sprav
     int* messages_count;                // Pocet platnych prvkov (sprav)

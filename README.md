@@ -31,7 +31,7 @@ Chat app
     * [SOCK_REQ_DELETE_CONTACT][SOCK_SPECIAL_SYMBOL][CONTACT_USERNAME]
     * [SOCK_REQ_GET_CONTACTS][SOCK_SPECIAL_SYMBOL]
     * [SOCK_REQ_SEND_MESSAGE][SOCK_SPECIAL_SYMBOL][CONTACT_USERNAME][SOCK_SPECIAL_SYMBOL][MESSAGE_TEXT]
-    * [SOCK_REQ_GET_UNREAD_MESSAGES][SOCK_SPECIAL_SYMBOL][CONTACT_USERNAME]
+    * [SOCK_REQ_GET_RECENT_MESSAGES][SOCK_SPECIAL_SYMBOL][CONTACT_USERNAME]
     * ...
 
 Odpovede na requesty su vzdy iba uspech (SOCK_RES_OK) alebo neuspech (SOCK_RES_FAIL)
@@ -64,6 +64,7 @@ Odpovede na requesty su vzdy iba uspech (SOCK_RES_OK) alebo neuspech (SOCK_RES_F
 #### Data na serveri
     * int sockfd - socket servera (file descriptor)
     * USER_ACCOUNT* accounts[CLIENT_MAX_ACCOUNT_COUNT] - pole vsetkych zaregistrovanych kont
+    * ...
 
 #### Data u klienta
     * username - meno prihlaseneho uzivatela
@@ -84,10 +85,9 @@ Odpovede na requesty su vzdy iba uspech (SOCK_RES_OK) alebo neuspech (SOCK_RES_F
 
 ---
 ### Known bugs and TODOs
-  * dorobit zobrazenie sprav od konkretneho uzivatela
   * dorobit posielanie sprav
+  * pri posielani sprav sa nekontroluje ci su priatelia
   * nefunguje odstranovanie uzivatelov z kontaktov
-  * pridat vymazanie uctu uzivatela (iba sa zmeni 'active' na hodnotu 0 v USER_ACCOUNT)
   * pridat LOGOUT
   * ... 
 

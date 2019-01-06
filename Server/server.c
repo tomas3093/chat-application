@@ -31,15 +31,50 @@ int main(int argc, char *argv[])
     pthread_mutex_t accounts_mutex;
     pthread_mutex_init(&accounts_mutex, NULL);
     
-    // Kontakty jednotlivych uzivatelov; usporiadany su rovnako ako accounts, teda accounts_count plati aj tu
-    USER_CONTACTS* contacts[CLIENT_MAX_CONTACTS_COUNT]; 
-    
     // Nedorucene spravy
     MESSAGE* messages[SERVER_MAX_MESSAGES_COUNT];
     int messages_count = 0;
     pthread_mutex_t messages_mutex;
     pthread_mutex_init(&messages_mutex, NULL);
     
+    
+    if (DEBUG_MODE == 1) {
+        puts("Debug mode enabled");
+        ACCOUNT_CREDENTIALS* c1 = malloc(sizeof(ACCOUNT_CREDENTIALS));
+        c1->username = "tom1";
+        c1->password = "123456";
+        
+        ACCOUNT_CREDENTIALS* c2 = malloc(sizeof(ACCOUNT_CREDENTIALS));
+        c2->username = "tom2";
+        c2->password = "123456";
+        
+        USER_ACCOUNT* a1 = malloc(sizeof(USER_ACCOUNT));
+        a1->contacts = malloc(sizeof(int*) * CLIENT_MAX_ACCOUNT_COUNT);
+        a1->active = malloc(sizeof(int));
+        a1->credentials = c1;
+        *a1->active = 1;
+        // Inicializacia pola kontaktov
+        for(int i = 0; i < CLIENT_MAX_ACCOUNT_COUNT; i++) {
+            a1->contacts[i] = malloc(sizeof(int));
+            *a1->contacts[i] = 0;
+        }
+        
+        USER_ACCOUNT* a2 = malloc(sizeof(USER_ACCOUNT));
+        a2->contacts = malloc(sizeof(int*) * CLIENT_MAX_ACCOUNT_COUNT);
+        a2->active = malloc(sizeof(int));
+        a2->credentials = c2;
+        *a2->active = 1;
+        // Inicializacia pola kontaktov
+        for(int i = 0; i < CLIENT_MAX_ACCOUNT_COUNT; i++) {
+            a2->contacts[i] = malloc(sizeof(int));
+            *a2->contacts[i] = 0;
+        }
+        
+        accounts[0] = a1;
+        accounts[1] = a2;
+        accounts_count = 2;
+    }
+
     
     // Skontrolujeme či máme dostatok argumentov.
     if (argc < 2)
@@ -93,7 +128,6 @@ int main(int argc, char *argv[])
         sockData->accounts = accounts;
         sockData->accounts_count = &accounts_count;
         sockData->accounts_mutex = &accounts_mutex;
-        sockData->contacts = contacts;
         
         sockData->messages = messages;
         sockData->messages_count = &messages_count;

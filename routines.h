@@ -110,7 +110,8 @@ ACCOUNT_CREDENTIALS* getCredentialsFromBuffer(char* buffer) {
  * @return 
  */
 char* getSecondBufferArgument(char* buffer) {
-    char* arg = malloc(sizeof(char) * USER_USERNAME_MAX_LENGTH);
+    char* arg = malloc(sizeof(char) * SOCK_BUFFER_LENGTH);
+    memset(arg, 0, SOCK_BUFFER_LENGTH);
     
     int first = 0;
     while(1) {
@@ -133,6 +134,71 @@ char* getSecondBufferArgument(char* buffer) {
     memcpy(arg, buffer + (first + 1), second - first - 1);
     
     return arg;
+}
+
+
+/**
+ * Vrati treti argument z buffera (argument za druhym specialnym symbolom)
+ * @param buffer
+ * @return 
+ */
+char* getThirdBufferArgument(char* buffer) {
+    char* arg = malloc(sizeof(char) * SOCK_BUFFER_LENGTH);
+    memset(arg, 0, SOCK_BUFFER_LENGTH);
+    
+    int first = 0;
+    while(1) {
+        if (buffer[first] == '\0' || buffer[first] == SOCK_SPECIAL_SYMBOL) {
+            break;
+        }
+        
+        first++;
+    }
+    
+    int second = first + 1;
+    while(1) {
+        if (buffer[first] == '\0' || buffer[second] == '\0' || buffer[second] == SOCK_SPECIAL_SYMBOL) {
+            break;
+        }
+        
+        second++;
+    }
+    
+    memcpy(arg, buffer + (second + 1), strlen(buffer) - second - 1);
+    
+    return arg;
+}
+
+
+/**
+ * Vytvori v bufferi chybovu spravu
+ * @param buffer - miesto kde sa ma sprava vytvorit
+ * @param messageText - chybova hlaska
+ * @return 
+ */
+int newErrorMessage(char* buffer, const char* messageText) {
+    addMessageCode(buffer, SOCK_RES_FAIL);
+    strcat(buffer, messageText);
+    
+    return SOCK_RES_FAIL;
+}
+
+
+/**
+ * Odosle na socket odpoved s kodom (Uspech alebo neuspech)
+ * @param p
+ * @param buffer
+ * @param statusCode
+ */
+void sendResponseStatus(CLIENT_SOCKET* p, char* buffer, int statusCode) {
+    // Odpoved
+    addMessageCode(buffer, statusCode);
+    
+    int n = write(*(p->client_sock), buffer, strlen(buffer) + 1);
+    if (n < 0)
+    {
+        newErrorMessage(buffer, "Error writing to socket");
+    }
 }
 
 

@@ -4,4 +4,5 @@ Client/build
 Server/build
 Client/dist
 Server/dist
+Server/core
 .*

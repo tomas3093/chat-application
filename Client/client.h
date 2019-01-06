@@ -12,20 +12,23 @@
  * credentials - registracne udaje
  * return - stav s akym funkcia skoncila
 */
-int registerNewClient(int* sockfd, char* buffer, ACCOUNT_CREDENTIALS* credentials)
+int registerNewClient(int* sockfd, char* buffer, char* username, char* password)
 {
+    if (strlen(username) <= 0 || strlen(password) <= 0) {
+        return newErrorMessage(buffer, "Bad data format");
+    }
+    
     addMessageCode(buffer, SOCK_REQ_REGISTER);
     
-    strcat(buffer, credentials->username);
+    strcat(buffer, username);
     strcat(buffer, &SOCK_SPECIAL_SYMBOL);
-    strcat(buffer, credentials->password);
+    strcat(buffer, password);
 
     // Pošleme správu cez socket servru.
     int n = write(*sockfd, buffer, strlen(buffer) + 1);
     if (n < 0)
     {
-       perror("Error writing to socket");
-       return SOCK_RES_FAIL;
+        return newErrorMessage(buffer, "Error writing to socket");
     }
 
     // Načítame odpoveď od servra do buffra.
@@ -33,12 +36,15 @@ int registerNewClient(int* sockfd, char* buffer, ACCOUNT_CREDENTIALS* credential
     n = read(*sockfd, buffer, SOCK_BUFFER_LENGTH - 1);
     if (n < 0)
     {
-        perror("Error reading from socket");
-        return SOCK_RES_FAIL;
+        return newErrorMessage(buffer, "Error reading from socket");
     }
     
     // Zistenie s akym stavom prebehla registracia
     int responseCode = getMessageCode(buffer);
+    
+    // Vypis odpovede
+    char* response = getSecondBufferArgument(buffer);
+    puts(response);
     
     return responseCode;
 }
@@ -50,20 +56,23 @@ int registerNewClient(int* sockfd, char* buffer, ACCOUNT_CREDENTIALS* credential
  * credentials - prihlasovacie udaje
  * return - stav s akym funkcia skoncila
 */
-int loginClient(int* sockfd, char* buffer, ACCOUNT_CREDENTIALS* credentials)
+int loginClient(int* sockfd, char* buffer, char* username, char* password)
 {
+    if (strlen(username) <= 0 || strlen(password) <= 0) {
+        return newErrorMessage(buffer, "Bad data format");
+    }
+    
     addMessageCode(buffer, SOCK_REQ_LOGIN);
     
-    strcat(buffer, credentials->username);
+    strcat(buffer, username);
     strcat(buffer, &SOCK_SPECIAL_SYMBOL);
-    strcat(buffer, credentials->password);
+    strcat(buffer, password);
 
     // Pošleme správu cez socket servru.
     int n = write(*sockfd, buffer, strlen(buffer));
     if (n < 0)
     {
-       perror("Error writing to socket");
-       return SOCK_RES_FAIL;
+       return newErrorMessage(buffer, "Error writing to socket");
     }
 
     // Načítame odpoveď od servra do buffra.
@@ -71,12 +80,15 @@ int loginClient(int* sockfd, char* buffer, ACCOUNT_CREDENTIALS* credentials)
     n = read(*sockfd, buffer, SOCK_BUFFER_LENGTH - 1);
     if (n < 0)
     {
-        perror("Error reading from socket");
-        return SOCK_RES_FAIL;
+        return newErrorMessage(buffer, "Error reading from socket");
     }
     
     // Zistenie s akym stavom prebehlo prihlasenie
     int responseCode = getMessageCode(buffer);
+    
+    // Vypis odpovede
+    char* response = getSecondBufferArgument(buffer);
+    puts(response);
     
     return responseCode;
 }
@@ -95,8 +107,7 @@ int showUserContacts(int* sockfd, char* buffer) {
     int n = write(*sockfd, buffer, strlen(buffer));
     if (n < 0)
     {
-       perror("Error writing to socket");
-       return SOCK_RES_FAIL;
+       return newErrorMessage(buffer, "Error writing to socket");
     }
 
     // Načítame odpoveď od servra do buffra.
@@ -104,8 +115,7 @@ int showUserContacts(int* sockfd, char* buffer) {
     n = read(*sockfd, buffer, SOCK_BUFFER_LENGTH - 1);
     if (n < 0)
     {
-        perror("Error reading from socket");
-        return SOCK_RES_FAIL;
+        return newErrorMessage(buffer, "Error reading from socket");
     }
     
     // Zistenie s akym stavom prebehla poziadavka
@@ -168,8 +178,7 @@ int addNewContact(int* sockfd, char* buffer, char* contactUsername) {
     int n = write(*sockfd, buffer, strlen(buffer));
     if (n < 0)
     {
-       perror("Error writing to socket");
-       return SOCK_RES_FAIL;
+       return newErrorMessage(buffer, "Error writing to socket");
     }
 
     // Načítame odpoveď od servra do buffra.
@@ -177,8 +186,7 @@ int addNewContact(int* sockfd, char* buffer, char* contactUsername) {
     n = read(*sockfd, buffer, SOCK_BUFFER_LENGTH - 1);
     if (n < 0)
     {
-        perror("Error reading from socket");
-        return SOCK_RES_FAIL;
+        return newErrorMessage(buffer, "Error reading from socket");
     }
     
     // Zistenie s akym stavom prebehlo pridanie medzi kontakty
@@ -204,8 +212,7 @@ int deleteContact(int* sockfd, char* buffer, char* contactUsername) {
     int n = write(*sockfd, buffer, strlen(buffer));
     if (n < 0)
     {
-       perror("Error writing to socket");
-       return SOCK_RES_FAIL;
+       return newErrorMessage(buffer, "Error writing to socket");
     }
 
     // Načítame odpoveď od servra do buffra.
@@ -213,8 +220,7 @@ int deleteContact(int* sockfd, char* buffer, char* contactUsername) {
     n = read(*sockfd, buffer, SOCK_BUFFER_LENGTH - 1);
     if (n < 0)
     {
-        perror("Error reading from socket");
-        return SOCK_RES_FAIL;
+        return newErrorMessage(buffer, "Error reading from socket");
     }
     
     // Zistenie s akym stavom prebehlo odobratie z kontaktov
@@ -224,21 +230,149 @@ int deleteContact(int* sockfd, char* buffer, char* contactUsername) {
 }
 
 
-// TODO
-int sendMessage(int* sockfd, char* buffer, char* recipient, char* message) {
+/**
+ * Vypise niekolko poslednych sprav prijatych od daneho uzivatela
+ * @param sockfd - inicializovany a pripojeny socket
+ * @param buffer - premenna v ktorej sa vrati odpoved servera
+ * @param contactUsername - meno uzivatela, ktoreho spravy chceme zobrazit
+ * @return - stav s akym funkcia skoncila
+ */
+int showRecentMessages(int* sockfd, char* buffer, char* contactUsername) {
+    addMessageCode(buffer, SOCK_REQ_GET_RECENT_MESSAGES);
+    strcat(buffer, contactUsername);
+
+    // Pošleme správu cez socket servru.
+    int n = write(*sockfd, buffer, strlen(buffer));
+    if (n < 0)
+    {
+       return newErrorMessage(buffer, "Error writing to socket");
+    }
+
     
+    // Nacitanie sprav zo servera
+    int responseCode = SOCK_RES_OK;
+    while (responseCode == SOCK_RES_OK) {    
+        memset(buffer, 0, SOCK_BUFFER_LENGTH);
+        n = read(*sockfd, buffer, SOCK_BUFFER_LENGTH - 1);
+        if (n < 0)
+        {
+            return newErrorMessage(buffer, "Error reading from socket");
+        }
+        if (n == 0) {
+            return newErrorMessage(buffer, "Lost connection to server");
+        }
+
+
+        // Zistenie s akym stavom prebehla poziadavka
+        responseCode = getMessageCode(buffer);
+        if (responseCode == SOCK_RES_OK) {
+
+            // Vypisanie spravy
+            char* sender = getSecondBufferArgument(buffer);     // Odosielatel spravy
+            char* messageText = getThirdBufferArgument(buffer); // Text spravy
+
+            if (strlen(messageText) > 0 && strlen(sender) > 0) {
+                char* abbr = strcmp(sender, contactUsername) == 0 ? contactUsername : "me";
+                printf("%s: %s\n", abbr, messageText);
+            }
+            free(sender);
+            free(messageText);
+        }
+    }
+
+    return SOCK_RES_OK;
+}
+
+
+/**
+ * Posle spravu uzivatelovi
+ * @param sockfd - inicializovany a pripojeny socket
+ * @param buffer - premenna v ktorej sa vrati odpoved servera
+ * @param contactUsername - meno uzivatela, ktoremu chceme odoslat spravu
+ * @param message - text spravy
+ * @return - stav s akym funkcia skoncila
+ */
+int sendMessage(int* sockfd, char* buffer, char* contactUsername, char* message) {
+    
+    // Chybne udaje
+    if (strlen(contactUsername) <= 0 || strlen(message) <= 0) {
+        return newErrorMessage(buffer, "Bad data format");
+    }
+    
+    addMessageCode(buffer, SOCK_REQ_SEND_MESSAGE);
+    strcat(buffer, contactUsername);
+    strcat(buffer, &SOCK_SPECIAL_SYMBOL);
+    strcat(buffer, message);
+
+    // Pošleme správu cez socket servru.
+    int n = write(*sockfd, buffer, strlen(buffer) + 1);
+    if (n < 0)
+    {
+       return newErrorMessage(buffer, "Error writing to socket");
+    }
+
+    // Načítame odpoveď od servra do buffra.
+    memset(buffer, 0, SOCK_BUFFER_LENGTH);
+    n = read(*sockfd, buffer, SOCK_BUFFER_LENGTH - 1);
+    if (n < 0)
+    {
+        return newErrorMessage(buffer, "Error reading from socket");
+    }
+    
+    // Zistenie s akym stavom prebehla operacia
+    int responseCode = getMessageCode(buffer);
+    
+    return responseCode;
+}
+
+
+/**
+ * Odstrani konto zadaneho uzivatela
+ * @param sockfd - inicializovany a pripojeny socket
+ * @param buffer - premenna v ktorej sa vrati odpoved servera
+ * @param userToDelete - meno uzivatela, ktory sa ma vymazat
+ * @return - stav s akym funkcia skoncila
+ */
+int deleteAccount(int* sockfd, char* buffer, char* userToDelete) {
+    
+    // Chybne udaje
+    if (strlen(userToDelete) <= 0) {
+        return newErrorMessage(buffer, "Bad data format");
+    }
+    
+    addMessageCode(buffer, SOCK_REQ_DELETE_ACCOUNT);
+    strcat(buffer, userToDelete);
+
+    // Pošleme správu cez socket servru.
+    int n = write(*sockfd, buffer, strlen(buffer) + 1);
+    if (n < 0)
+    {
+       return newErrorMessage(buffer, "Error writing to socket");
+    }
+
+    // Načítame odpoveď od servra do buffra.
+    memset(buffer, 0, SOCK_BUFFER_LENGTH);
+    n = read(*sockfd, buffer, SOCK_BUFFER_LENGTH - 1);
+    if (n < 0)
+    {
+        return newErrorMessage(buffer, "Error reading from socket");
+    }
+    
+    // Zistenie s akym stavom prebehla operacia
+    int responseCode = getMessageCode(buffer);
+    
+    return responseCode;
 }
 
 
 /**
  * Zobrazi uvodne menu aplikacie (neprihlaseny uzivatel)
- * @param sockfd
- * @param buffer
- * @param noExit - adresa kam sa ulozi priznak ci uzivatel ukoncil aplikaciu (0 - koniec, 1 - pokracuje sa)
+ * @param sockfd - inicializovany a pripojeny socket
+ * @param buffer - premenna v ktorej sa vrati odpoved servera
  * @param username - adresa kam sa ulozi meno prihlaseneho uzivatela
  * @return - cislo moznosti ktoru si uzivatel zvolil
  */
-int showStartMenu(int* sockfd, char* buffer, int* noExit, char* username) {
+int showStartMenu(int* sockfd, char* buffer, char* username) {
     printf("\n### Chat app ###\n\n");
     printf("Menu:\n");
     printf("1. Login\n");
@@ -250,40 +384,20 @@ int showStartMenu(int* sockfd, char* buffer, int* noExit, char* username) {
     
     char username_input[USER_USERNAME_MAX_LENGTH];
     char password_input[USER_PASSWORD_MAX_LENGTH];
-    int value;
+    int status;
     
     switch(option) {
         case 1:
-            // Cyklus 3 pokusy na zadanie mena a hesla
-            *noExit = 0;
             printf("Enter your login:\t");
             scanf("%s", username_input);
             printf("\nEnter your password:\t");
             scanf("%s", password_input);
 
-            if (strlen(username_input) > 0 && strlen(password_input) > 0) {
+            status = loginClient(sockfd, buffer, username_input, password_input);
+            if (status == SOCK_RES_OK) {
 
-                ACCOUNT_CREDENTIALS c = {
-                    username_input,
-                    password_input
-                };
-
-                value = loginClient(sockfd, buffer, &c);
-                if (value == SOCK_RES_OK) {
-
-                    // Uspesne prihlasenie
-                    printf("Login successful.\n");
-                    memcpy(username, c.username, strlen(c.username));
-                    *noExit = 1;
-                    break;
-
-                } else {
-                    printf("Login failed.\n");
-                    break;
-                }
-
-            } else {
-                printf("Login failed.\n");
+                // Uspesne prihlasenie
+                memcpy(username, username_input, strlen(username_input));
                 break;
             }
             break;
@@ -294,25 +408,17 @@ int showStartMenu(int* sockfd, char* buffer, int* noExit, char* username) {
             printf("\nEnter your password:\t");
             scanf("%s", password_input);
             
-            ACCOUNT_CREDENTIALS c = {username_input, password_input};
-            value = registerNewClient(sockfd, buffer, &c);
-            if (value == SOCK_RES_OK) {
-                printf("\nRegistration successful!\n");
+            status = registerNewClient(sockfd, buffer, username_input, password_input);
+            if (status == SOCK_RES_OK) {
+                
+                // Uspesna registracia
                 sleep(1);
-                *noExit = 1;
-                break;
-            } 
-            else {
-                // Chyba pri registracii
-                printf("\nRegistration failed! Entered username is not available.\n");
-                sleep(1);
-                *noExit = 1;
                 break;
             }
+            break;
             
         default:
             printf("Bye!\n");
-            *noExit = 0;
             break;
     }
     
@@ -324,31 +430,56 @@ int showStartMenu(int* sockfd, char* buffer, int* noExit, char* username) {
  * Zobrazi menu pre prihlaseneho uzivatela
  * @param sockfd
  * @param buffer
- * @param noExit - adresa kam sa ulozi priznak ci uzivatel ukoncil aplikaciu (0 - koniec, 1 - pokracuje sa)
  * @param username - meno prihlaseneho uzivatela
+ * @return - ci uzivatel ukoncil aplikaciu (0 - pokracuje sa, 1 - koniec)
  */
-void showMenuAuthenticated(int* sockfd, char* buffer, int* noExit, char* username) {
+int showMenuAuthenticated(int* sockfd, char* buffer, char* username) {
     printf("\n\n### Chat app ###\n\n");
     printf("You are logged as %s\n", username);
     printf("Menu:\n");
     printf("1. Start chat\n");
     printf("2. My contacts\n");
-    printf("3. Exit\n\n");
+    printf("3. Delete account\n");
+    printf("4. Exit\n\n");
     
-    int option;
+    int option, status;
     scanf("%d", &option);
     
     char* value1 = malloc(USER_USERNAME_MAX_LENGTH * sizeof(char));
-    char* value2 = malloc(30 * sizeof(char));
+    char* value2 = malloc(CLIENT_MESSAGE_LENGTH * sizeof(char));
     
     switch(option) {
         case 1:            
-            printf("NOT IMPLEMENTED YET!\n");
-            
-            // TODO Tu sa vypyta meno kontaktu a text spravy. Odosle sa na server a ak bol req uspesny
+            // Tu sa vypyta meno kontaktu a text spravy. Odosle sa na server a ak bol req uspesny
             // tak sa spusti nekonecny cyklus s chatom s danym uzivatelom
             
-            *noExit = 1;
+            printf("Enter username of user you want to chat with:\n");
+            scanf("%s", value1);
+            
+            printf("Chat with %s\nFor exit type 'exit'\n\n", value1);
+            status = showRecentMessages(sockfd, buffer, value1);
+            if (status == SOCK_RES_OK) {
+                // spravy sa vypisali
+                
+                while (1) {
+                    printf("You: ");
+                    scanf("%s", value2);
+                    if (strcmp(value2, "exit") == 0) {
+                        break;
+                    }
+
+                    if (strlen(value2) > 0) {
+                        status = sendMessage(sockfd, buffer, value1, value2);
+                        if (status != SOCK_RES_OK) {
+                            puts(buffer);
+                            break;
+                        }
+                    }
+                }
+
+            } else {
+                puts(buffer);
+            }
             break;
             
         case 2:
@@ -370,43 +501,57 @@ void showMenuAuthenticated(int* sockfd, char* buffer, int* noExit, char* usernam
                     printf("Enter username of user you want to add to your contacts:\n");
                     scanf("%s", value1);
                     
-                    option = addNewContact(sockfd, buffer, value1);
-                    if (option == SOCK_RES_OK) {
+                    status = addNewContact(sockfd, buffer, value1);
+                    if (status == SOCK_RES_OK) {
                         printf("\n%s has been added to your contacts\n", value1);
                     } else {
                         printf("\nAdding failed!\n");
                     }
-                    
-                    *noExit = 1;
                     break;
             
                 case 2:            
                     printf("Enter username of user you want to remove from your contacts:\n");
                     scanf("%s", value1);
                     
-                    option = deleteContact(sockfd, buffer, value1);
-                    if (option == SOCK_RES_OK) {
+                    status = deleteContact(sockfd, buffer, value1);
+                    if (status == SOCK_RES_OK) {
                         printf("\n%s has been removed from your contacts\n", value1);
                     } else {
                         printf("\nRemoving failed!\n");
                     }
-                    
-                    *noExit = 1;
                     break;
             
-                default:            
-                    *noExit = 1;
+                default:          
                     break;
             }
-            *noExit = 1;
+            break;
+            
+        case 3:
+            printf("Do you really want to delete your account? (yes/N)\n");
+            scanf("%s", value1);
+            
+            // Odstranenie konta uzivatela
+            if (strcmp(value1, "yes") == 0) {
+                status = deleteAccount(sockfd, buffer, value1);
+                if (status == SOCK_RES_OK) {
+                    free(value1);
+                    free(value2);
+                    printf("Your account has been deleted!\n");
+                    return 1;
+                } else {
+                    printf("Deletion failed!\n");
+                }
+            }
             break;
             
         default:
+            free(value1);
+            free(value2);
             printf("Bye!\n");
-            *noExit = 0;
-            break;
+            return 1;
     }
     
     free(value1);
     free(value2);
+    return 0;
 }

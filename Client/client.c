@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
     char* username = malloc(sizeof(char) * USER_USERNAME_MAX_LENGTH);
     
     // Priznak ci sa ma pokracovat v obsluhe (ukoncenie nekonecneho cyklu)
-    int looping;
+    int exited;
     
     // Skontrolujeme či máme dostatok argumentov.
     if (argc < 3)
@@ -70,14 +70,15 @@ int main(int argc, char *argv[])
 
     
     // Poziadavka na registraciu alebo prihlasenie
+    exited = 0;
     while (strlen(username) < USER_USERNAME_MIN_LENGTH) {
         
         // Zobrazenie menu s moznostami prihlasit sa alebo registrovat
-        int value = showStartMenu(&sockfd, buffer, &looping, username);
+        int value = showStartMenu(&sockfd, buffer, username);
         
         // Ak uzivatel chce ukoncit aplikaciu
         if (value >= 3) {
-            looping = 0;
+            exited = 1;
             break;
         }
 
@@ -86,11 +87,11 @@ int main(int argc, char *argv[])
     // Pokracovat do hlavneho cyklu sa bude iba ak je username vyplneny
     
     // Hlavny cyklus s komunikaciou medzi serverom a prihlasenym klientom
-    while ( looping == 1 && 
+    while ( exited == 0 && 
             strlen(username) >= USER_USERNAME_MIN_LENGTH) {
 
         // Menu pre prihlaseneho uzivatela
-        showMenuAuthenticated(&sockfd, buffer, &looping, username);
+        exited = showMenuAuthenticated(&sockfd, buffer, username);
     }
 
     free(username);
