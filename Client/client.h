@@ -333,21 +333,15 @@ int sendMessage(int* sockfd, char* buffer, char* contactUsername, char* message)
  * @param userToDelete - meno uzivatela, ktory sa ma vymazat
  * @return - stav s akym funkcia skoncila
  */
-int deleteAccount(int* sockfd, char* buffer, char* userToDelete) {
+int deleteAccount(int* sockfd, char* buffer) {
     
-    // Chybne udaje
-    if (strlen(userToDelete) <= 0) {
-        return newErrorMessage(buffer, "Bad data format");
-    }
-    
+    // Odpoved
     addMessageCode(buffer, SOCK_REQ_DELETE_ACCOUNT);
-    strcat(buffer, userToDelete);
-
-    // Pošleme správu cez socket servru.
+    
     int n = write(*sockfd, buffer, strlen(buffer) + 1);
     if (n < 0)
     {
-       return newErrorMessage(buffer, "Error writing to socket");
+        return newErrorMessage(buffer, "Error writing to socket");
     }
 
     // Načítame odpoveď od servra do buffra.
@@ -370,7 +364,7 @@ int deleteAccount(int* sockfd, char* buffer, char* userToDelete) {
  * @param sockfd - inicializovany a pripojeny socket
  * @param buffer - premenna v ktorej sa vrati odpoved servera
  * @param username - adresa kam sa ulozi meno prihlaseneho uzivatela
- * @return - cislo moznosti ktoru si uzivatel zvolil
+ * @return - status klienta (znamena co sa ma robit dalej)
  */
 int showStartMenu(int* sockfd, char* buffer, char* username) {
     printf("\n### Chat app ###\n\n");
@@ -398,7 +392,7 @@ int showStartMenu(int* sockfd, char* buffer, char* username) {
 
                 // Uspesne prihlasenie
                 memcpy(username, username_input, strlen(username_input));
-                break;
+                return CLIENT_STATUS_AUTHENTICATED;
             }
             break;
             
@@ -419,10 +413,10 @@ int showStartMenu(int* sockfd, char* buffer, char* username) {
             
         default:
             printf("Bye!\n");
-            break;
+            return CLIENT_STATUS_EXIT;
     }
     
-    return option;
+    return CLIENT_STATUS_UNAUTHENTICATED;
 }
 
 
@@ -431,7 +425,7 @@ int showStartMenu(int* sockfd, char* buffer, char* username) {
  * @param sockfd
  * @param buffer
  * @param username - meno prihlaseneho uzivatela
- * @return - ci uzivatel ukoncil aplikaciu (0 - pokracuje sa, 1 - koniec)
+ * @return - status klienta (znamena co sa ma robit dalej)
  */
 int showMenuAuthenticated(int* sockfd, char* buffer, char* username) {
     printf("\n\n### Chat app ###\n\n");
@@ -440,7 +434,8 @@ int showMenuAuthenticated(int* sockfd, char* buffer, char* username) {
     printf("1. Start chat\n");
     printf("2. My contacts\n");
     printf("3. Delete account\n");
-    printf("4. Exit\n\n");
+    printf("4. Logout\n");
+    printf("5. Exit\n\n");
     
     int option, status;
     scanf("%d", &option);
@@ -532,26 +527,34 @@ int showMenuAuthenticated(int* sockfd, char* buffer, char* username) {
             
             // Odstranenie konta uzivatela
             if (strcmp(value1, "yes") == 0) {
-                status = deleteAccount(sockfd, buffer, value1);
+                status = deleteAccount(sockfd, buffer);
                 if (status == SOCK_RES_OK) {
+                    printf("Your account has been deleted!\n");
+                    memset(username, 0, USER_USERNAME_MAX_LENGTH);  // Odhlasenie uzivatela
                     free(value1);
                     free(value2);
-                    printf("Your account has been deleted!\n");
-                    return 1;
+                    return CLIENT_STATUS_UNAUTHENTICATED;
                 } else {
                     printf("Deletion failed!\n");
                 }
             }
             break;
             
+        case 4:
+            printf("You have been logged out!\n");
+            memset(username, 0, USER_USERNAME_MAX_LENGTH);  // Odhlasenie uzivatela
+            free(value1);
+            free(value2);
+            return CLIENT_STATUS_UNAUTHENTICATED;
+            
         default:
             free(value1);
             free(value2);
             printf("Bye!\n");
-            return 1;
+            return CLIENT_STATUS_EXIT;
     }
     
     free(value1);
     free(value2);
-    return 0;
+    return CLIENT_STATUS_AUTHENTICATED;
 }

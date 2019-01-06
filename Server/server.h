@@ -563,6 +563,7 @@ void clientDeleteAccount(CLIENT_SOCKET* p, char* buffer, char* userToDelete) {
     
     if (success == 1) {
         sendResponseStatus(p, buffer, SOCK_RES_OK);
+        memset(userToDelete, 0, USER_USERNAME_MAX_LENGTH);
     } else {
         sendResponseStatus(p, buffer, SOCK_RES_FAIL);
     }
@@ -599,6 +600,8 @@ void* clientHandler(void* args) {
             username = credentials->username;
             clientLoginHandler(p, buffer, credentials);
             free(credentials);
+        } else if (messageCode == SOCK_REQ_DELETE_ACCOUNT) {
+            clientDeleteAccount(p, buffer, username);
         } else if (messageCode == SOCK_REQ_ADD_CONTACT) {
             char* userToAdd = getSecondBufferArgument(buffer);
             clientAddNewContactHandler(p, buffer, username, userToAdd);

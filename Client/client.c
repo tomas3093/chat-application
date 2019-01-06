@@ -23,8 +23,6 @@ int main(int argc, char *argv[])
     // Meno aktualne prihlaseneho usera (nastavi sa po prihlaseni)
     char* username = malloc(sizeof(char) * USER_USERNAME_MAX_LENGTH);
     
-    // Priznak ci sa ma pokracovat v obsluhe (ukoncenie nekonecneho cyklu)
-    int exited;
     
     // Skontrolujeme či máme dostatok argumentov.
     if (argc < 3)
@@ -69,31 +67,38 @@ int main(int argc, char *argv[])
     puts("Socket connected\n");
 
     
-    // Poziadavka na registraciu alebo prihlasenie
-    exited = 0;
-    while (strlen(username) < USER_USERNAME_MIN_LENGTH) {
-        
-        // Zobrazenie menu s moznostami prihlasit sa alebo registrovat
-        int value = showStartMenu(&sockfd, buffer, username);
-        
-        // Ak uzivatel chce ukoncit aplikaciu
-        if (value >= 3) {
-            exited = 1;
-            break;
+    int status = CLIENT_STATUS_UNAUTHENTICATED;
+    while (status != CLIENT_STATUS_EXIT) {
+        // Registracia alebo prihlasenie
+        while (status != CLIENT_STATUS_AUTHENTICATED) {
+
+            // Zobrazenie menu s moznostami prihlasit sa alebo registrovat
+            status = showStartMenu(&sockfd, buffer, username);
+
+            // Koniec aplikacie
+            if (status == CLIENT_STATUS_EXIT) {
+                free(username);
+                close(sockfd);
+                return 0;
+            }
         }
 
+        // Hlavny cyklus s komunikaciou medzi serverom a prihlasenym klientom
+        while (status == CLIENT_STATUS_AUTHENTICATED) {
+
+            // Menu pre prihlaseneho uzivatela
+            status = showMenuAuthenticated(&sockfd, buffer, username);
+            
+            // Koniec aplikacie
+            if (status == CLIENT_STATUS_EXIT) {
+                free(username);
+                close(sockfd);
+                return 0;
+            }
+        }
     }
 
-    // Pokracovat do hlavneho cyklu sa bude iba ak je username vyplneny
     
-    // Hlavny cyklus s komunikaciou medzi serverom a prihlasenym klientom
-    while ( exited == 0 && 
-            strlen(username) >= USER_USERNAME_MIN_LENGTH) {
-
-        // Menu pre prihlaseneho uzivatela
-        exited = showMenuAuthenticated(&sockfd, buffer, username);
-    }
-
     free(username);
     close(sockfd);
 
