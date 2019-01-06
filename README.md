@@ -86,8 +86,7 @@ Odpovede na requesty su vzdy iba uspech (SOCK_RES_OK) alebo neuspech (SOCK_RES_F
 ---
 ### Known bugs and TODOs
   * dorobit posielanie sprav
-  * pri posielani sprav sa nekontroluje ci su priatelia
-  * nefunguje odstranovanie uzivatelov z kontaktov
+  * nefunguje vymazanie konta
   * pridat LOGOUT
   * ... 
 
