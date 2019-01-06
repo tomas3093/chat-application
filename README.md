@@ -32,6 +32,8 @@ Chat app
     * [SOCK_REQ_GET_CONTACTS][SOCK_SPECIAL_SYMBOL]
     * [SOCK_REQ_SEND_MESSAGE][SOCK_SPECIAL_SYMBOL][CONTACT_USERNAME][SOCK_SPECIAL_SYMBOL][MESSAGE_TEXT]
     * [SOCK_REQ_GET_RECENT_MESSAGES][SOCK_SPECIAL_SYMBOL][CONTACT_USERNAME]
+    * [SOCK_REQ_DELETE_ACCOUNT][SOCK_SPECIAL_SYMBOL]
+    * [SOCK_REQ_START_CHAT][SOCK_SPECIAL_SYMBOL]
     * ...
 
 Odpovede na requesty su vzdy iba uspech (SOCK_RES_OK) alebo neuspech (SOCK_RES_FAIL)
@@ -85,7 +87,7 @@ Odpovede na requesty su vzdy iba uspech (SOCK_RES_OK) alebo neuspech (SOCK_RES_F
 
 ---
 ### Known bugs and TODOs
-  * dorobit posielanie sprav
+  * dorobit chat (zobrazovanie predoslych sprav)
   * ... 
 
 ---

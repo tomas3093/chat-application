@@ -40,6 +40,7 @@ const int SOCK_REQ_GET_CONTACTS = 7;        // Poziadavka na zobrazenie kontakto
 const int SOCK_REQ_SEND_MESSAGE = 8;        // Poziadavka na poslanie spravy inemu uzivatelovi
 const int SOCK_REQ_GET_RECENT_MESSAGES = 9; // Poziadavka na zobrazenie neprecitanych sprav od daneho uzivatela
 const int SOCK_REQ_DELETE_ACCOUNT = 10;     // Poziadavka na vymazanie konta uzivatela
+const int SOCK_REQ_START_CHAT = 11;         // Poziadavka na zistenie ci je mozne zacat chat s danym uzivatelom
 
 // ...
 

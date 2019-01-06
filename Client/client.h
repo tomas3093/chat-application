@@ -231,6 +231,40 @@ int deleteContact(int* sockfd, char* buffer, char* contactUsername) {
 
 
 /**
+ * Zisti ci je mozne zacat chat s danym uzivatelom (ci taky existuje a maju sa navzajom v kontaktoch)
+ * @param sockfd - inicializovany a pripojeny socket
+ * @param buffer - premenna v ktorej sa vrati odpoved servera
+ * @param contactUsername - meno uzivatela, s ktorym chceme zacat chat
+ * @return - stav s akym funkcia skoncila 
+ */
+int startChat(int* sockfd, char* buffer, char* contactUsername) {
+    addMessageCode(buffer, SOCK_REQ_START_CHAT);
+    
+    strcat(buffer, contactUsername);
+
+    // Pošleme správu cez socket servru.
+    int n = write(*sockfd, buffer, strlen(buffer));
+    if (n < 0)
+    {
+       return newErrorMessage(buffer, "Error writing to socket");
+    }
+
+    // Načítame odpoveď od servra do buffra.
+    memset(buffer, 0, SOCK_BUFFER_LENGTH);
+    n = read(*sockfd, buffer, SOCK_BUFFER_LENGTH - 1);
+    if (n < 0)
+    {
+        return newErrorMessage(buffer, "Error reading from socket");
+    }
+    
+    // Zistenie s akym stavom prebehlo pridanie medzi kontakty
+    int responseCode = getMessageCode(buffer);
+    
+    return responseCode;
+}
+
+
+/**
  * Vypise niekolko poslednych sprav prijatych od daneho uzivatela
  * @param sockfd - inicializovany a pripojeny socket
  * @param buffer - premenna v ktorej sa vrati odpoved servera
@@ -437,7 +471,8 @@ int showMenuAuthenticated(int* sockfd, char* buffer, char* username) {
     printf("4. Logout\n");
     printf("5. Exit\n\n");
     
-    int option, status;
+    int option;
+    int status;
     scanf("%d", &option);
     
     char* value1 = malloc(USER_USERNAME_MAX_LENGTH * sizeof(char));
@@ -450,13 +485,20 @@ int showMenuAuthenticated(int* sockfd, char* buffer, char* username) {
             
             printf("Enter username of user you want to chat with:\n");
             scanf("%s", value1);
-            
-            printf("Chat with %s\nFor exit type 'exit'\n\n", value1);
-            status = showRecentMessages(sockfd, buffer, value1);
+            status = startChat(sockfd, buffer, value1);
             if (status == SOCK_RES_OK) {
-                // spravy sa vypisali
+                
+                // Spustenie chatu
+                printf("Chat with %s\nFor exit type 'exit'\n\n", value1);
                 
                 while (1) {
+                    // Vypis predoslych sprav
+                    status = showRecentMessages(sockfd, buffer, value1);
+                    if (status != SOCK_RES_OK) {
+                        printErrorMessage(buffer);
+                        break;
+                    }
+
                     printf("You: ");
                     scanf("%s", value2);
                     if (strcmp(value2, "exit") == 0) {
@@ -466,15 +508,13 @@ int showMenuAuthenticated(int* sockfd, char* buffer, char* username) {
                     if (strlen(value2) > 0) {
                         status = sendMessage(sockfd, buffer, value1, value2);
                         if (status != SOCK_RES_OK) {
-                            puts(buffer);
+                            printErrorMessage(buffer);
                             break;
                         }
                     }
                 }
-
-            } else {
-                puts(buffer);
             }
+            printErrorMessage(buffer);
             break;
             
         case 2:

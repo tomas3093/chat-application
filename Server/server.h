@@ -363,7 +363,85 @@ void clientDeleteContactHandler(CLIENT_SOCKET* p, char* buffer, char* currentUse
 
 
 /**
- * Obsluha poziadavky pre odoslanie spravy inemu uzivatelovi
+ * Funkcia skontroluje ci zadany uzivatelia existuju a ci su navzajom v kontakte
+ * @param p
+ * @param currentUser
+ * @param userToChat
+ * @return - stav s akym vykonavanie skoncilo
+ */
+int startChat(CLIENT_SOCKET* p, char* buffer, char* currentUser, char* userToChat) {
+    int** currentUserContacts;
+    int** userToChatContacts;
+    
+    // Aktualny uzivatel
+    // Kontrola ci je meno aktualneho uzivatela registrovane a ma aktivny ucet
+    int isValid = 0;
+    int currentUserIndex;  // index konta aktualneho uzivatela
+    pthread_mutex_lock(p->accounts_mutex);
+    for(currentUserIndex = 0; currentUserIndex < *p->accounts_count; currentUserIndex++) {
+        if (strcmp(p->accounts[currentUserIndex]->credentials->username, currentUser) == 0 && *p->accounts[currentUserIndex]->active == 1) {
+            isValid = 1;
+            break;
+        }
+    }
+    
+    if (isValid == 1) {
+        currentUserContacts = p->accounts[currentUserIndex]->contacts;        
+    } else {
+        pthread_mutex_unlock(p->accounts_mutex);
+        return newErrorMessage(buffer, "No such user!");
+    }
+    
+    
+    // Pridavany uzivatel 
+    // Kontrola ci je meno uzivatela s ktorym sa ma zacat chat registrovane a ma aktivny ucet
+    isValid = 0;
+    int userToChatIndex;  // index konta uzivatela, s ktorym sa ma zacat chat
+    for(userToChatIndex = 0; userToChatIndex < *p->accounts_count; userToChatIndex++) {
+        if (strcmp(p->accounts[userToChatIndex]->credentials->username, userToChat) == 0 && *p->accounts[userToChatIndex]->active == 1) {
+            isValid = 1;
+            break;
+        }
+    }
+    
+    if (isValid == 1) {
+        userToChatContacts = p->accounts[userToChatIndex]->contacts;
+    } else {
+        pthread_mutex_unlock(p->accounts_mutex);
+        return newErrorMessage(buffer, "No such user!");
+    }
+    pthread_mutex_unlock(p->accounts_mutex);
+    
+    
+    // Zistenie ci su uzivatelia navzajom v kontakte
+    if (*currentUserContacts[userToChatIndex] == 0 || *userToChatContacts[currentUserIndex] == 0) {
+        return newErrorMessage(buffer, "You don't have this user in your contacts!");
+    }
+        
+    return SOCK_RES_OK;
+}
+
+
+/**
+ * Obsluha poziadavky pre zistenie ci je mozne zacat chat so zadanym uzivatelom
+ * @param p - data
+ * @param buffer - buffer pre spravu klientovi
+ * @param currentUser - meno aktualne prihlaseneho uzivatela
+ * @param userToChat - meno uzivatela s ktorym chceme zacat chat
+ */
+void clientStartChatHandler(CLIENT_SOCKET* p, char* buffer, char* currentUser, char* userToChat) {
+    startChat(p, buffer, currentUser, userToChat);
+    
+    int n = write(*(p->client_sock), buffer, strlen(buffer) + 1);
+    if (n < 0)
+    {
+        newErrorMessage(buffer, "Error writing to socket");
+    }
+}
+
+
+/**
+ * Odosle spravu inemu uzivatelovi
  * @param p - data
  * @param buffer - buffer pre spravu klientovi
  * @param sender - meno aktualne prihlaseneho uzivatela
@@ -371,52 +449,13 @@ void clientDeleteContactHandler(CLIENT_SOCKET* p, char* buffer, char* currentUse
  * @param messageText - text samotnej spravy
  * @return - stav s akym vykonavanie skoncilo
  */
-int clientSendMessageHandler(CLIENT_SOCKET* p, char* buffer, char* sender, char* recipient, char* messageText) {
+int clientSendMessage(CLIENT_SOCKET* p, char* buffer, char* sender, char* recipient, char* messageText) {
     
     // Ak je prazdna sprava
     if (strlen(messageText) <= 0) {
-        sendResponseStatus(p, buffer, SOCK_RES_FAIL);
         return SOCK_RES_FAIL;
     }
 
-    // Odosielatel
-    // Kontrola ci je meno odosielatela registrovane a ma aktivny ucet
-    int isValid = 0;
-    int senderIndex;  // index konta odosielatela v poli accounts
-    pthread_mutex_lock(p->accounts_mutex);
-    for(senderIndex = 0; senderIndex < *p->accounts_count; senderIndex++) {
-        if (strcmp(p->accounts[senderIndex]->credentials->username, sender) == 0 && *p->accounts[senderIndex]->active == 1) {
-            isValid = 1;
-            break;
-        }
-    }
-    
-    if (isValid == 0) {
-        pthread_mutex_unlock(p->accounts_mutex);
-        sendResponseStatus(p, buffer, SOCK_RES_FAIL);
-        return SOCK_RES_FAIL;
-    } 
-    
-    
-    // Prijimatel
-    // Kontrola ci je meno prijimatela registrovane
-    isValid = 0;
-    int recipientIndex;  // index konta prijimatela v poli accounts
-    for(recipientIndex = 0; recipientIndex < *p->accounts_count; recipientIndex++) {
-        if (strcmp(p->accounts[recipientIndex]->credentials->username, recipient) == 0) {
-            isValid = 1;
-            break;
-        }
-    }
-    
-    if (isValid == 0) {
-        pthread_mutex_unlock(p->accounts_mutex);
-        sendResponseStatus(p, buffer, SOCK_RES_FAIL);
-        return SOCK_RES_FAIL;
-    }
-    pthread_mutex_unlock(p->accounts_mutex);
-    
-    
     // Vytvorenie spravy a jej ulozenie do pola
     MESSAGE* message = malloc(sizeof(MESSAGE));
     message->unread = malloc(sizeof(int));
@@ -431,7 +470,6 @@ int clientSendMessageHandler(CLIENT_SOCKET* p, char* buffer, char* sender, char*
     pthread_mutex_lock(p->messages_mutex);
     if (*p->messages_count >= SERVER_MAX_MESSAGES_COUNT) {
         pthread_mutex_unlock(p->messages_mutex);
-        sendResponseStatus(p, buffer, SOCK_RES_FAIL);
         return newErrorMessage(buffer, "Error: Server memory is full.");
     }
     
@@ -439,21 +477,34 @@ int clientSendMessageHandler(CLIENT_SOCKET* p, char* buffer, char* sender, char*
     (*p->messages_count)++;
     pthread_mutex_unlock(p->messages_mutex);
     
-    
-    // Odpoved
-    sendResponseStatus(p, buffer, SOCK_RES_OK);
+    return SOCK_RES_OK;
 }
 
 
 /**
- * Obsluha poziadavky pre zobrazenie sprav od konkretneho uzivatela
+ * Obsluha poziadavky pre odoslanie spravy inemu uzivatelovi
+ * @param p
+ * @param buffer
+ * @param sender
+ * @param recipient
+ * @param messageText
+ */
+void clientSendMessageHandler(CLIENT_SOCKET* p, char* buffer, char* sender, char* recipient, char* messageText) {
+    int messageCode = clientSendMessage(p, buffer, sender, recipient, messageText);
+    
+    sendResponseStatus(p, buffer, messageCode);
+}
+
+
+/**
+ * Odosle klientovi najnovsie spravy z chatu s konkretnym uzivatelom
  * @param p - data
  * @param buffer - buffer pre spravu klientovi
  * @param currentUser - meno aktualne prihlaseneho uzivatela
  * @param sender - meno uzivatela, od ktoreho chceme zobrazit nedavne spravy
  * @return - stav s akym vykonavanie skoncilo
  */
-int clientGetRecentMessagesHandler(CLIENT_SOCKET* p, char* buffer, char* currentUser, char* sender) {
+int clientGetRecentMessages(CLIENT_SOCKET* p, char* buffer, char* currentUser, char* sender) {
     
     // Zistenie ci su vzajomne kontakty
     int** currentUserContacts;     // kontakty aktualneho uzivatela
@@ -542,6 +593,20 @@ int clientGetRecentMessagesHandler(CLIENT_SOCKET* p, char* buffer, char* current
 
 
 /**
+ * Obsluha poziadavky pre zobrazenie sprav od konkretneho uzivatela
+ * @param p - data
+ * @param buffer - buffer pre spravu klientovi
+ * @param currentUser - meno aktualne prihlaseneho uzivatela
+ * @param sender - meno uzivatela, od ktoreho chceme zobrazit nedavne spravy
+ */
+void clientGetRecentMessagesHandler(CLIENT_SOCKET* p, char* buffer, char* currentUser, char* sender) {
+    int messageCode = clientGetRecentMessages(p, buffer, currentUser, sender);
+    
+    sendResponseStatus(p, buffer, messageCode);
+}
+
+
+/**
  * Obsluha poziadavky pre vymazanie konta uzivatela
  * @param p - data
  * @param buffer - buffer pre spravu klientovi
@@ -550,14 +615,21 @@ int clientGetRecentMessagesHandler(CLIENT_SOCKET* p, char* buffer, char* current
 void clientDeleteAccount(CLIENT_SOCKET* p, char* buffer, char* userToDelete) {
     
     int success = 0;
-    int index;  // index konta uzivatela v poli accounts
+    int userIndex;  // index konta mazaneho uzivatela v poli accounts
+    
+    // Najdenie uzivatela
     pthread_mutex_lock(p->accounts_mutex);
-    for(index = 0; index < *p->accounts_count; index++) {
-        if (strcmp(p->accounts[index]->credentials->username, userToDelete) == 0 && *p->accounts[index]->active == 1) {
-            *p->accounts[index]->active = 0;
+    for(userIndex = 0; userIndex < *p->accounts_count; userIndex++) {
+        if (strcmp(p->accounts[userIndex]->credentials->username, userToDelete) == 0 && *p->accounts[userIndex]->active == 1) {
+            *p->accounts[userIndex]->active = 0;
             success = 1;
             break;
         }
+    }
+    
+    // Odstranenie uzivatela zo vsetkych kontaktov
+    for(int i = 0; i < *p->accounts_count; i++) {
+        *p->accounts[i]->contacts[userIndex] = 0;
     }
     pthread_mutex_unlock(p->accounts_mutex);
     
@@ -612,6 +684,10 @@ void* clientHandler(void* args) {
             free(userToDelete);
         } else if (messageCode == SOCK_REQ_GET_CONTACTS) {
             clientGetContactsHandler(p, buffer, username);
+        } else if (messageCode == SOCK_REQ_START_CHAT) {
+            char* userToChat = getSecondBufferArgument(buffer);
+            clientStartChatHandler(p, buffer, username, userToChat);
+            free(userToChat);
         } else if (messageCode == SOCK_REQ_SEND_MESSAGE) {
             char* recipient = getSecondBufferArgument(buffer);
             char* messageText = getThirdBufferArgument(buffer);

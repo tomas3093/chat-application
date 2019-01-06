@@ -202,4 +202,15 @@ void sendResponseStatus(CLIENT_SOCKET* p, char* buffer, int statusCode) {
 }
 
 
+/**
+ * Vypise chybovu hlasku z buffra na standardny vystup
+ * @param buffer
+ */
+void printErrorMessage(char* buffer) {
+    char* msg = getSecondBufferArgument(buffer);
+    puts(msg);
+    free(msg);
+}
+
+
 #endif
