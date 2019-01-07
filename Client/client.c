@@ -28,6 +28,7 @@ int main(int argc, char *argv[])
     if (argc < 3)
     {
         fprintf(stderr,"usage %s hostname port\n", argv[0]);
+        free(username);
         return 1;
     }
 
@@ -36,6 +37,7 @@ int main(int argc, char *argv[])
     if (server == NULL)
     {
         fprintf(stderr, "Error, no such host\n");
+        free(username);
         return 2;
     }
 
@@ -54,6 +56,7 @@ int main(int argc, char *argv[])
     if (sockfd < 0)
     {
         perror("Error creating socket");
+        free(username);
         return 3;
     }
     puts("Socket created");
@@ -62,6 +65,7 @@ int main(int argc, char *argv[])
     if(connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0)
     {
         perror("Error connecting to socket");
+        free(username);
         return 4;
     }
     puts("Socket connected\n");

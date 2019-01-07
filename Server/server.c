@@ -168,6 +168,33 @@ int main(int argc, char *argv[])
         puts("Handler assigned");   
     }
     
+    // Uvolnenie pamete
+    pthread_mutex_destroy(&accounts_mutex);
+    pthread_mutex_destroy(&messages_mutex);
+    
+    // Uzivatelia
+    for (int i = 0; i < accounts_count; i++) {
+        free(accounts[i]->credentials->username);
+        free(accounts[i]->credentials->password);
+        free(accounts[i]->credentials);
+        free(accounts[i]->active);
+        for(int j = 0; j < CLIENT_MAX_ACCOUNT_COUNT; j++) {
+            free(accounts[i]->contacts[j]);
+        }
+        free(accounts[i]->contacts);
+    }
+    
+    // Spravy
+    for (int i = 0; i < messages_count; i++) {
+        free(messages[i]->unread);
+        free(messages[i]->sender);
+        free(messages[i]->recipient);
+        free(messages[i]->text);
+    }
+    
+    // sockData ?
+    
+    
     if (client_sock < 0) {
         perror("Accept failed");
         return 1;
