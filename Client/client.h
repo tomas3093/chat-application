@@ -285,7 +285,7 @@ int showRecentMessages(int* sockfd, char* buffer, char* contactUsername) {
     
     // Nacitanie sprav zo servera
     int responseCode = SOCK_RES_OK;
-    printf("\n\n\n\n\n\n\n#####################\nCHAT with %s\n#####################\n", contactUsername);
+    printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n#####################\nCHAT with %s\n#####################\n", contactUsername);
     while (responseCode == SOCK_RES_OK) {    
         memset(buffer, 0, SOCK_BUFFER_LENGTH);
         n = read(*sockfd, buffer, SOCK_BUFFER_LENGTH - 1);
@@ -306,7 +306,7 @@ int showRecentMessages(int* sockfd, char* buffer, char* contactUsername) {
             char* sender = getSecondBufferArgument(buffer);     // Odosielatel spravy
             char* messageText = getThirdBufferArgument(buffer); // Text spravy
             char* abbr = strcmp(sender, contactUsername) == 0 ? contactUsername : "me";
-            printf("%s: %s\n", abbr, messageText);
+            printf("%s: %s", abbr, messageText);
             
             free(sender);
             free(messageText);
@@ -508,11 +508,11 @@ int showMenuAuthenticated(int* sockfd, char* buffer, char* username) {
 
                     printf("You: ");
                     fgets(value2, CLIENT_MESSAGE_LENGTH, stdin);
-                    if (strcmp(value2, "exit") == 0) {
+                    if (strcmp(value2, "exit\n") == 0) {
                         break;
                     }
 
-                    if (strlen(value2) > 0) {
+                    if (strlen(value2) > 0 && strcmp(value2, "\n") != 0) {
                         status = sendMessage(sockfd, buffer, value1, value2);
                         if (status != SOCK_RES_OK) {
                             printErrorMessage(buffer);
