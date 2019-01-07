@@ -5,4 +5,7 @@ Server/build
 Client/dist
 Server/dist
 Server/core
+Server/Makefile
+Client/Makefile
+Release/*
 .*

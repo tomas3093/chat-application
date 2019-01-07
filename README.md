@@ -138,7 +138,6 @@ Client-server aplikácia, ktorá umožní komunikovať ľubovoľnému počtu pou
 ---
 ### Known bugs and TODOs
   * manualne skontrolovat memory leaky ((?) alebo cez nejaky tool) - manualne som nenasiel ziadny leak
-  * napisat vlastny makefile
   * napisat dokumentaciu:
     * struktura projektu
         * server.c - obsahuje main funkciu, v ktorej sa prijimaju spojenia od klientov a pre kazde sa vytvara samostatne vlakno
