@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <strings.h>
 #include <pthread.h>
+#include <unistd.h>
 
 #include "../konstanty.h"
 #include "../routines.h"
@@ -58,7 +59,11 @@ void clientRegisterHandler(CLIENT_SOCKET* p, char* buffer, ACCOUNT_CREDENTIALS* 
         } else {
             free(credentials);
             registration_successful = 0;
-            messageText = "Registracia zlyhala. Nie je dostatocna velkost pamate.";
+            if (isUnique == 0) {
+                messageText = "Registracia zlyhala. Zadane meno uz niekto pouziva.";
+            } else {
+                messageText = "Registracia zlyhala. Nie je dostatocna velkost pamate.";
+            }
         }
         pthread_mutex_unlock(p->accounts_mutex);
         
@@ -417,7 +422,8 @@ int startChat(CLIENT_SOCKET* p, char* buffer, char* currentUser, char* userToCha
     if (*currentUserContacts[userToChatIndex] == 0 || *userToChatContacts[currentUserIndex] == 0) {
         return newErrorMessage(buffer, "You don't have this user in your contacts!");
     }
-        
+       
+    addMessageCode(buffer, SOCK_RES_OK);
     return SOCK_RES_OK;
 }
 
@@ -497,60 +503,19 @@ void clientSendMessageHandler(CLIENT_SOCKET* p, char* buffer, char* sender, char
 
 
 /**
- * Odosle klientovi najnovsie spravy z chatu s konkretnym uzivatelom
+ * Obsluha poziadavky pre zobrazenie sprav od konkretneho uzivatela
  * @param p - data
  * @param buffer - buffer pre spravu klientovi
  * @param currentUser - meno aktualne prihlaseneho uzivatela
  * @param sender - meno uzivatela, od ktoreho chceme zobrazit nedavne spravy
- * @return - stav s akym vykonavanie skoncilo
  */
-int clientGetRecentMessages(CLIENT_SOCKET* p, char* buffer, char* currentUser, char* sender) {
-    
-    // Zistenie ci su vzajomne kontakty
-    int** currentUserContacts;     // kontakty aktualneho uzivatela
-    
-    // Ziskanie kontaktov
-    int isValid = 0;
-    int currentUserIndex;  // index konta aktualneho uzivatela v poli accounts
-    pthread_mutex_lock(p->accounts_mutex);
-    for(currentUserIndex = 0; currentUserIndex < *p->accounts_count; currentUserIndex++) {
-        if (strcmp(p->accounts[currentUserIndex]->credentials->username, currentUser) == 0 && *p->accounts[currentUserIndex]->active == 1) {
-            isValid = 1;
-            break;
-        }
-    }
-    
-    if (isValid == 1) {
-        currentUserContacts = p->accounts[currentUserIndex]->contacts; 
-        
-        // Najdenie ci su vzajomne kontakty
-        isValid = 0;
-        for(int i = 0; i < *p->accounts_count; i++) {
-            if (*currentUserContacts[i] == 1 && strcmp(p->accounts[i]->credentials->username, sender)) {
-                isValid = 1;
-                break;
-            }
-        }
-        if (isValid == 0) {
-            pthread_mutex_unlock(p->accounts_mutex);
-            return SOCK_RES_FAIL;
-        }
-
-        
-    } else {
-        pthread_mutex_unlock(p->accounts_mutex);
-        return SOCK_RES_FAIL;
-    }
-    pthread_mutex_unlock(p->accounts_mutex);
-    
-    
-    
+void clientGetRecentMessagesHandler(CLIENT_SOCKET* p, char* buffer, char* currentUser, char* sender) {
     MESSAGE* messages[CLIENT_MAX_RECEIVED_MESSAGES_COUNT];     // spravy pre uzivatela
     
     // Ziskanie relevantnych sprav
     int count = 0;  // Pocet najdenych sprav
     pthread_mutex_lock(p->messages_mutex);
-    for (int i = 0; i < *p->messages_count; i++) {
+    for (int i = *p->messages_count - 1; i >= 0; i--) {
         if (count >= CLIENT_MAX_RECEIVED_MESSAGES_COUNT) {
             break;
         }
@@ -566,7 +531,7 @@ int clientGetRecentMessages(CLIENT_SOCKET* p, char* buffer, char* currentUser, c
     
     
     // Odoslanie sprav cez socket
-    for (int i = 0; i < count; i++) {
+    for (int i = count - 1; i >= 0; i--) {
         addMessageCode(buffer, SOCK_RES_OK);
         strcat(buffer, messages[i]->sender);
         strcat(buffer, &SOCK_SPECIAL_SYMBOL);
@@ -575,7 +540,16 @@ int clientGetRecentMessages(CLIENT_SOCKET* p, char* buffer, char* currentUser, c
         int n = write(*(p->client_sock), buffer, strlen(buffer) + 1);
         if (n < 0)
         {
-            return newErrorMessage(buffer, "Error writing to socket");
+            newErrorMessage(buffer, "Error writing to socket");
+            return;
+        }
+        
+        // Pockanie na potvrdenie ze klient spravu dostal
+        n = read(*(p->client_sock), buffer, SOCK_BUFFER_LENGTH - 1);
+        if (n < 0)
+        {
+            newErrorMessage(buffer, "Error reading from socket");
+            return;
         }
     }
     
@@ -585,24 +559,9 @@ int clientGetRecentMessages(CLIENT_SOCKET* p, char* buffer, char* currentUser, c
     int n = write(*(p->client_sock), buffer, strlen(buffer) + 1);
     if (n < 0)
     {
-        return newErrorMessage(buffer, "Error writing to socket");
+        newErrorMessage(buffer, "Error writing to socket");
+        return;
     }
-    
-    return SOCK_RES_OK;
-}
-
-
-/**
- * Obsluha poziadavky pre zobrazenie sprav od konkretneho uzivatela
- * @param p - data
- * @param buffer - buffer pre spravu klientovi
- * @param currentUser - meno aktualne prihlaseneho uzivatela
- * @param sender - meno uzivatela, od ktoreho chceme zobrazit nedavne spravy
- */
-void clientGetRecentMessagesHandler(CLIENT_SOCKET* p, char* buffer, char* currentUser, char* sender) {
-    int messageCode = clientGetRecentMessages(p, buffer, currentUser, sender);
-    
-    sendResponseStatus(p, buffer, messageCode);
 }
 
 

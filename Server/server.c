@@ -21,7 +21,6 @@ int main(int argc, char *argv[])
 {
     int sockfd;         // Server socket descriptor
     int client_sock;
-    int* new_sock;
     socklen_t cli_len;
     struct sockaddr_in serv_addr, cli_addr;
     
@@ -73,6 +72,33 @@ int main(int argc, char *argv[])
         accounts[0] = a1;
         accounts[1] = a2;
         accounts_count = 2;
+        
+        *a1->contacts[1] = 1;
+        *a2->contacts[0] = 1;
+        
+        MESSAGE* m1 = malloc(sizeof(MESSAGE));
+        m1->unread = malloc(sizeof(int));
+        m1->sender = malloc(sizeof(char) * USER_USERNAME_MAX_LENGTH);
+        m1->recipient = malloc(sizeof(char) * USER_USERNAME_MAX_LENGTH);
+        m1->text = malloc(sizeof(char) * CLIENT_MESSAGE_LENGTH);
+        *m1->unread = 1;
+        m1->sender = "tom1";
+        m1->recipient = "tom2";
+        m1->text = "hello!";
+        
+        MESSAGE* m2 = malloc(sizeof(MESSAGE));
+        m2->unread = malloc(sizeof(int));
+        m2->sender = malloc(sizeof(char) * USER_USERNAME_MAX_LENGTH);
+        m2->recipient = malloc(sizeof(char) * USER_USERNAME_MAX_LENGTH);
+        m2->text = malloc(sizeof(char) * CLIENT_MESSAGE_LENGTH);
+        *m2->unread = 1;
+        m2->sender = "tom1";
+        m2->recipient = "tom2";
+        m2->text = "this is my second message!";
+        
+        messages[0] = m1;
+        messages[1] = m2;
+        messages_count = 2;
     }
 
     
@@ -120,7 +146,7 @@ int main(int argc, char *argv[])
         puts("Connection accepted");
         
         pthread_t sniffer_thread;
-        new_sock = malloc(1);
+        int* new_sock = malloc(1);
         *new_sock = client_sock;
         
         CLIENT_SOCKET* sockData = malloc(sizeof(CLIENT_SOCKET));

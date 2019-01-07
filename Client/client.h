@@ -257,7 +257,7 @@ int startChat(int* sockfd, char* buffer, char* contactUsername) {
         return newErrorMessage(buffer, "Error reading from socket");
     }
     
-    // Zistenie s akym stavom prebehlo pridanie medzi kontakty
+    // Zistenie s akym stavom prebehlo
     int responseCode = getMessageCode(buffer);
     
     return responseCode;
@@ -285,6 +285,7 @@ int showRecentMessages(int* sockfd, char* buffer, char* contactUsername) {
     
     // Nacitanie sprav zo servera
     int responseCode = SOCK_RES_OK;
+    printf("\n\n\n\n\n\n\n#####################\nCHAT with %s\n#####################\n", contactUsername);
     while (responseCode == SOCK_RES_OK) {    
         memset(buffer, 0, SOCK_BUFFER_LENGTH);
         n = read(*sockfd, buffer, SOCK_BUFFER_LENGTH - 1);
@@ -304,13 +305,19 @@ int showRecentMessages(int* sockfd, char* buffer, char* contactUsername) {
             // Vypisanie spravy
             char* sender = getSecondBufferArgument(buffer);     // Odosielatel spravy
             char* messageText = getThirdBufferArgument(buffer); // Text spravy
-
-            if (strlen(messageText) > 0 && strlen(sender) > 0) {
-                char* abbr = strcmp(sender, contactUsername) == 0 ? contactUsername : "me";
-                printf("%s: %s\n", abbr, messageText);
-            }
+            char* abbr = strcmp(sender, contactUsername) == 0 ? contactUsername : "me";
+            printf("%s: %s\n", abbr, messageText);
+            
             free(sender);
             free(messageText);
+            
+            // Odpoved ze sprava bola dorucena
+            addMessageCode(buffer, SOCK_RES_OK);
+            int n = write(*sockfd, buffer, strlen(buffer));
+            if (n < 0)
+            {
+               return newErrorMessage(buffer, "Error writing to socket");
+            }
         }
     }
 
@@ -500,7 +507,7 @@ int showMenuAuthenticated(int* sockfd, char* buffer, char* username) {
                     }
 
                     printf("You: ");
-                    scanf("%s", value2);
+                    fgets(value2, CLIENT_MESSAGE_LENGTH, stdin);
                     if (strcmp(value2, "exit") == 0) {
                         break;
                     }
@@ -514,7 +521,6 @@ int showMenuAuthenticated(int* sockfd, char* buffer, char* username) {
                     }
                 }
             }
-            printErrorMessage(buffer);
             break;
             
         case 2:

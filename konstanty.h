@@ -7,7 +7,7 @@
 #include <pthread.h>
 
 // Ladenie
-const int DEBUG_MODE = 1;                   // Mod pre vyvoj a ladenie
+const int DEBUG_MODE = 0;                   // Mod pre vyvoj a ladenie
 
 // VSEOBECNE
 const int SOCK_BUFFER_LENGTH = 256;         // Dlzka buffera ktory sa posiela socketmi
@@ -24,9 +24,10 @@ const int USER_PASSWORD_MIN_LENGTH = 6;     // Minimalna dlzka uzivatelskeho hes
 const int USER_PASSWORD_MAX_LENGTH = 255;   // Maximalna dlzka uzivatelskeho hesla
 const int SERVER_MAX_MESSAGES_COUNT = 1000; // Maximalny pocet sprav ulozenych na servery
 
-const int CLIENT_STATUS_EXIT = 1;
-const int CLIENT_STATUS_UNAUTHENTICATED = 2;
-const int CLIENT_STATUS_AUTHENTICATED = 3;
+// Stavy klienta
+const int CLIENT_STATUS_EXIT = 1;           // Klient ukoncil aplikaciu
+const int CLIENT_STATUS_UNAUTHENTICATED = 2;// Klient nie je prihlaseny
+const int CLIENT_STATUS_AUTHENTICATED = 3;  // Klient je prihlaseny
 
 
 // SOCKETY (ciselne kody)
