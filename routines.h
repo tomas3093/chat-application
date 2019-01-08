@@ -3,10 +3,9 @@
 #ifndef _ROUTINES_INCLUDED
 #define _ROUTINES_INCLUDED
 
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <bits/stdio2.h>
-#include <bits/string_fortified.h>
 
 #include "konstanty.h"
 
